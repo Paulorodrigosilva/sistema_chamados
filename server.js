@@ -8,7 +8,7 @@ const app = express();
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(express.static('public')); // Mantido caso você sirva seu frontend daqui
+app.use(express.static('public'));
 
 // Configuração do Multer para MEMÓRIA (Vercel não suporta gravação em disco)
 const storage = multer.memoryStorage();
@@ -20,7 +20,7 @@ function getAgoraBrasil() {
     return isoString.replace('T', ' ').substring(0, 19);
 }
 
-// Inicializa o banco de dados PostgreSQL usando Variável de Ambiente (Segurança)
+// Inicializa o banco de dados PostgreSQL usando Variável de Ambiente
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
 });
@@ -102,8 +102,7 @@ app.post('/api/usuarios', async (req, res) => {
         await pool.query(`INSERT INTO usuarios (usuario, senha, tipo) VALUES ($1, $2, $3)`, [usuarioParaSalvar, senha, tipoUsuario]);
         return res.json({ sucesso: true, mensagem: "Usuário cadastrado com sucesso!" });
     } catch (err) {
-        console.error('Erro ao cadastrar em /api/usuarios:', err.message);
-        return res.status(400).json({ sucesso: false, mensagem: "Erro ao cadastrar usuário (o nome de usuário já pode estar em uso)." });
+        return res.status(400).json({ sucesso: false, mensagem: "Erro ao cadastrar usuário." });
     }
 });
 
@@ -119,16 +118,9 @@ app.get('/api/usuarios', async (req, res) => {
 app.put('/api/usuarios/:id', async (req, res) => {
     const { id } = req.params;
     const { usuario, tipo } = req.body;
-
-    if (!usuario || !tipo) {
-        return res.status(400).json({ sucesso: false, mensagem: "Usuário e tipo são obrigatórios." });
-    }
-
     try {
         const { rowCount } = await pool.query(`UPDATE usuarios SET usuario = $1, tipo = $2 WHERE id = $3`, [usuario.trim(), tipo.trim(), id]);
-        if (rowCount === 0) {
-            return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado." });
-        }
+        if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado." });
         return res.json({ sucesso: true, mensagem: "Usuário atualizado com sucesso!" });
     } catch (err) {
         return res.status(500).json({ sucesso: false, mensagem: err.message });
@@ -145,158 +137,54 @@ app.delete('/api/usuarios/:id', async (req, res) => {
     }
 });
 
-// --- ROTAS DE CADASTRO DE APOIO ---
-app.post('/api/lojas', async (req, res) => {
-    try {
-        const { rows } = await pool.query(`INSERT INTO lojas (nome) VALUES ($1) RETURNING id`, [req.body.nome]);
-        return res.json({ sucesso: true, id: rows[0].id });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
+// --- ROTAS DE APOIO (Lojas, Setores, Equipamentos, Responsáveis) ---
+const criarRotaApoio = (caminho, tabela) => {
+    app.post(caminho, async (req, res) => {
+        try {
+            const { rows } = await pool.query(`INSERT INTO ${tabela} (nome) VALUES ($1) RETURNING id`, [req.body.nome]);
+            return res.json({ sucesso: true, id: rows[0].id });
+        } catch (err) {
+            return res.status(500).json({ sucesso: false, erro: err.message });
+        }
+    });
 
-app.get('/api/lojas', async (req, res) => {
-    try {
-        const { rows } = await pool.query(`SELECT id, nome FROM lojas`);
-        return res.json(rows);
-    } catch (err) {
-        return res.status(500).json({ erro: err.message });
-    }
-});
+    app.get(caminho, async (req, res) => {
+        try {
+            const { rows } = await pool.query(`SELECT id, nome FROM ${tabela}`);
+            return res.json(rows);
+        } catch (err) {
+            return res.status(500).json({ erro: err.message });
+        }
+    });
 
-app.post('/api/setores', async (req, res) => {
-    try {
-        const { rows } = await pool.query(`INSERT INTO setores (nome) VALUES ($1) RETURNING id`, [req.body.nome]);
-        return res.json({ sucesso: true, id: rows[0].id });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
+    app.put(`${caminho}/:id`, async (req, res) => {
+        try {
+            await pool.query(`UPDATE ${tabela} SET nome = $1 WHERE id = $2`, [req.body.nome, req.params.id]);
+            return res.json({ sucesso: true, mensagem: "Atualizado com sucesso!" });
+        } catch (err) {
+            return res.status(500).json({ sucesso: false, erro: err.message });
+        }
+    });
 
-app.get('/api/setores', async (req, res) => {
-    try {
-        const { rows } = await pool.query(`SELECT id, nome FROM setores`);
-        return res.json(rows);
-    } catch (err) {
-        return res.status(500).json({ erro: err.message });
-    }
-});
+    app.delete(`${caminho}/:id`, async (req, res) => {
+        try {
+            await pool.query(`DELETE FROM ${tabela} WHERE id = $1`, [req.params.id]);
+            return res.json({ sucesso: true, mensagem: "Excluído com sucesso!" });
+        } catch (err) {
+            return res.status(500).json({ sucesso: false, erro: err.message });
+        }
+    });
+};
 
-app.post('/api/equipamentos', async (req, res) => {
-    try {
-        const { rows } = await pool.query(`INSERT INTO equipamentos (nome) VALUES ($1) RETURNING id`, [req.body.nome]);
-        return res.json({ sucesso: true, id: rows[0].id });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
-
-app.get('/api/equipamentos', async (req, res) => {
-    try {
-        const { rows } = await pool.query(`SELECT id, nome FROM equipamentos`);
-        return res.json(rows);
-    } catch (err) {
-        return res.status(500).json({ erro: err.message });
-    }
-});
-
-app.post('/api/responsaveis', async (req, res) => {
-    try {
-        const { rows } = await pool.query(`INSERT INTO responsaveis (nome) VALUES ($1) RETURNING id`, [req.body.nome]);
-        return res.json({ sucesso: true, id: rows[0].id });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
-
-app.get('/api/responsaveis', async (req, res) => {
-    try {
-        const { rows } = await pool.query(`SELECT id, nome FROM responsaveis`);
-        return res.json(rows);
-    } catch (err) {
-        return res.status(500).json({ erro: err.message });
-    }
-});
-
-// --- ROTAS DE ATUALIZAÇÃO (PUT) DE APOIO ---
-app.put('/api/lojas/:id', async (req, res) => {
-    try {
-        await pool.query(`UPDATE lojas SET nome = $1 WHERE id = $2`, [req.body.nome, req.params.id]);
-        return res.json({ sucesso: true, mensagem: "Loja atualizada com sucesso!" });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
-
-app.put('/api/setores/:id', async (req, res) => {
-    try {
-        await pool.query(`UPDATE setores SET nome = $1 WHERE id = $2`, [req.body.nome, req.params.id]);
-        return res.json({ sucesso: true, mensagem: "Setor atualizado com sucesso!" });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
-
-app.put('/api/equipamentos/:id', async (req, res) => {
-    try {
-        await pool.query(`UPDATE equipamentos SET nome = $1 WHERE id = $2`, [req.body.nome, req.params.id]);
-        return res.json({ sucesso: true, mensagem: "Equipamento atualizado com sucesso!" });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
-
-app.put('/api/responsaveis/:id', async (req, res) => {
-    try {
-        await pool.query(`UPDATE responsaveis SET nome = $1 WHERE id = $2`, [req.body.nome, req.params.id]);
-        return res.json({ sucesso: true, mensagem: "Responsável atualizado com sucesso!" });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
-
-// --- ROTAS DE EXCLUSÃO DE APOIO ---
-app.delete('/api/lojas/:id', async (req, res) => {
-    try {
-        await pool.query(`DELETE FROM lojas WHERE id = $1`, [req.params.id]);
-        return res.json({ sucesso: true, mensagem: "Loja excluída com sucesso!" });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
-
-app.delete('/api/setores/:id', async (req, res) => {
-    try {
-        await pool.query(`DELETE FROM setores WHERE id = $1`, [req.params.id]);
-        return res.json({ sucesso: true, mensagem: "Setor excluído com sucesso!" });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
-
-app.delete('/api/equipamentos/:id', async (req, res) => {
-    try {
-        await pool.query(`DELETE FROM equipamentos WHERE id = $1`, [req.params.id]);
-        return res.json({ sucesso: true, mensagem: "Equipamento excluído com sucesso!" });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
-
-app.delete('/api/responsaveis/:id', async (req, res) => {
-    try {
-        await pool.query(`DELETE FROM responsaveis WHERE id = $1`, [req.params.id]);
-        return res.json({ sucesso: true, mensagem: "Responsável excluído com sucesso!" });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
+criarRotaApoio('/api/lojas', 'lojas');
+criarRotaApoio('/api/setores', 'setores');
+criarRotaApoio('/api/equipamentos', 'equipamentos');
+criarRotaApoio('/api/responsaveis', 'responsaveis');
 
 // --- ROTAS DE CHAMADOS ---
 app.post('/api/chamados', upload.single('foto'), async (req, res) => {
     const { descricao, loja_id, setor_id, equipamento_id, responsavel_id, setor_responsavel_id, criado_por, urgencia } = req.body;
     
-    // Converte a imagem da memória para Base64
     let fotoUrl = null;
     if (req.file) {
         const base64Data = req.file.buffer.toString('base64');
@@ -348,50 +236,26 @@ app.get('/api/chamados', async (req, res) => {
 });
 
 app.patch('/api/chamados/:id/descricao', async (req, res) => {
-    const { id } = req.params;
-    const { descricao } = req.body;
-
     try {
-        const { rowCount } = await pool.query(`UPDATE chamados SET descricao = $1 WHERE id = $2`, [descricao, id]);
-        if (rowCount === 0) {
-            return res.status(404).json({ sucesso: false, mensagem: "Chamado não encontrado." });
-        }
+        const { rowCount } = await pool.query(`UPDATE chamados SET descricao = $1 WHERE id = $2`, [req.body.descricao, req.params.id]);
+        if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Chamado não encontrado." });
         return res.json({ sucesso: true, mensagem: "Descrição atualizada com sucesso!" });
     } catch (err) {
         return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
-app.patch('/api/chamados/:id/status', async (req, res) => {
-    try {
-        await pool.query(`UPDATE chamados SET status = $1 WHERE id = $2`, [req.body.status, req.params.id]);
-        return res.json({ sucesso: true });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
+app.patch('/api/chamados/:id/:campo', async (req, res) => {
+    const camposPermitidos = ['status', 'urgencia', 'responsavel_id', 'setor_responsavel_id'];
+    const { campo } = req.params;
+    
+    if (!camposPermitidos.includes(campo)) return res.status(400).json({ erro: "Campo inválido" });
+    
+    // Pegando o valor do corpo dinamicamente. Para 'responsavel_id' o body também precisa mandar essa chave.
+    const valor = req.body[campo] || req.body.status || req.body.urgencia; 
 
-app.patch('/api/chamados/:id/urgencia', async (req, res) => {
     try {
-        await pool.query(`UPDATE chamados SET urgencia = $1 WHERE id = $2`, [req.body.urgencia, req.params.id]);
-        return res.json({ sucesso: true, mensagem: 'Urgência atualizada com sucesso!' });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
-
-app.patch('/api/chamados/:id/responsavel', async (req, res) => {
-    try {
-        await pool.query(`UPDATE chamados SET responsavel_id = $1 WHERE id = $2`, [req.body.responsavel_id, req.params.id]);
-        return res.json({ sucesso: true });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
-
-app.patch('/api/chamados/:id/setor-responsavel', async (req, res) => {
-    try {
-        await pool.query(`UPDATE chamados SET setor_responsavel_id = $1 WHERE id = $2`, [req.body.setor_responsavel_id, req.params.id]);
+        await pool.query(`UPDATE chamados SET ${campo} = $1 WHERE id = $2`, [valor, req.params.id]);
         return res.json({ sucesso: true });
     } catch (err) {
         return res.status(500).json({ sucesso: false, erro: err.message });
@@ -446,16 +310,11 @@ function formatarItensComFotos(itens) {
     return itens.map(item => {
         let fotosArray = [];
         try {
-            if (item.fotos) {
-                fotosArray = JSON.parse(item.fotos);
-            }
+            if (item.fotos) fotosArray = JSON.parse(item.fotos);
         } catch (e) {
             if (item.fotos) fotosArray = [item.fotos];
         }
-        return {
-            ...item,
-            fotos: fotosArray
-        };
+        return { ...item, fotos: fotosArray };
     });
 }
 
@@ -495,9 +354,7 @@ app.put('/api/checklists/:id', async (req, res) => {
 
     try {
         const { rowCount } = await pool.query(`UPDATE checklists SET titulo = $1, responsavel = $2, concluido_por = $3 WHERE id = $4`, [titulo, responsavel, concluido_por, id]);
-        if (rowCount === 0) {
-            return res.status(404).json({ sucesso: false, mensagem: "Checklist não encontrado." });
-        }
+        if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Checklist não encontrado." });
         return res.json({ sucesso: true, mensagem: "Checklist atualizado com sucesso!" });
     } catch (err) {
         return res.status(500).json({ sucesso: false, erro: err.message });
@@ -507,6 +364,15 @@ app.put('/api/checklists/:id', async (req, res) => {
 app.patch('/api/checklists/:id/concluir', async (req, res) => {
     try {
         await pool.query(`UPDATE checklists SET concluido_por = $1 WHERE id = $2`, [req.body.usuario, req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.delete('/api/checklists/:id', async (req, res) => {
+    try {
+        await pool.query(`DELETE FROM checklists WHERE id = $1`, [req.params.id]);
         return res.json({ sucesso: true });
     } catch (err) {
         return res.status(500).json({ sucesso: false, erro: err.message });
@@ -544,7 +410,6 @@ app.patch('/api/checklist-itens/:id/toggle', async (req, res) => {
 app.post('/api/checklist-itens/:id/foto', upload.array('fotos'), async (req, res) => {
     const itemId = req.params.id;
 
-    // Converte imagens da memória para Base64
     let novosArquivos = [];
     if (req.files && req.files.length > 0) {
         novosArquivos = req.files.map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
@@ -562,9 +427,7 @@ app.post('/api/checklist-itens/:id/foto', upload.array('fotos'), async (req, res
 
         let listaAtual = [];
         try {
-            if (row && row.fotos) {
-                listaAtual = JSON.parse(row.fotos);
-            }
+            if (row && row.fotos) listaAtual = JSON.parse(row.fotos);
         } catch (e) {
             if (row && row.fotos) listaAtual = [row.fotos];
         }
@@ -578,30 +441,18 @@ app.post('/api/checklist-itens/:id/foto', upload.array('fotos'), async (req, res
     }
 });
 
-app.delete('/api/checklists/:id', async (req, res) => {
-    try {
-        await pool.query(`DELETE FROM checklists WHERE id = $1`, [req.params.id]);
-        return res.json({ sucesso: true });
-    } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
-    }
-});
-
 // --- AUTENTICAÇÃO E CADASTRO ---
 app.post('/api/cadastro', async (req, res) => {
     const usuarioParaSalvar = (req.body.usuario || req.body.nome || '').trim();
     const senha = req.body.senha;
     const tipo = (req.body.tipo || 'comum').trim();
 
-    if (!usuarioParaSalvar || !senha) {
-        return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
-    }
+    if (!usuarioParaSalvar || !senha) return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
 
     try {
         await pool.query(`INSERT INTO usuarios (usuario, senha, tipo) VALUES ($1, $2, $3)`, [usuarioParaSalvar, senha, tipo]);
         return res.json({ sucesso: true, mensagem: "Usuário cadastrado com sucesso!" });
     } catch (err) {
-        console.error('Erro no cadastro:', err.message);
         return res.status(400).json({ sucesso: false, mensagem: "Usuário já existente ou inválido." });
     }
 });
@@ -610,21 +461,16 @@ app.post('/api/login', async (req, res) => {
     const usuarioParaBuscar = (req.body.usuario || '').trim();
     const senha = req.body.senha;
 
-    if (!usuarioParaBuscar || !senha) {
-        return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
-    }
+    if (!usuarioParaBuscar || !senha) return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
 
     try {
         const { rows } = await pool.query(`SELECT * FROM usuarios WHERE usuario = $1 AND senha = $2`, [usuarioParaBuscar, senha]);
-        const row = rows[0];
-
-        if (row) {
-            return res.json({ sucesso: true, usuario: row.usuario, tipo: row.tipo || 'comum' });
+        if (rows[0]) {
+            return res.json({ sucesso: true, usuario: rows[0].usuario, tipo: rows[0].tipo || 'comum' });
         } else {
             return res.status(401).json({ sucesso: false, mensagem: "Usuário ou senha inválidos." });
         }
     } catch (err) {
-        console.error('Erro na consulta de login:', err.message);
         return res.status(500).json({ sucesso: false, mensagem: "Erro interno no servidor." });
     }
 });
