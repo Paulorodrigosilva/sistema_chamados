@@ -87,7 +87,7 @@
             </div>
 
             <div class="file-group">
-                <label for="fotoChamado" style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #495057;">Anexar Foto (Opcional):</label>
+                <label for="fotoChamado" style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #495057;">Anexar Foto (Opcional - Máx 4MB):</label>
                 <input type="file" id="fotoChamado" accept="image/*">
             </div>
 
@@ -318,7 +318,7 @@
         }
 
         function obterIdOuTexto(tipo, nome) {
-            if (!nome || !nome.trim()) return null;
+            if (!nome || !nome.trim()) return '';
             const nomeTratado = nome.trim();
             
             let cache;
@@ -328,7 +328,10 @@
             else if (tipo === 'responsavel') cache = cacheResponsaveis;
 
             const encontrado = (cache || []).find(item => extrairNomeItem(item).trim().toLowerCase() === nomeTratado.toLowerCase());
-            return encontrado && encontrado.id ? encontrado.id : nomeTratado;
+            
+            // Alteração crucial para o PostgreSQL: Retornar VAZIO em vez do nome digitado caso não exista na lista,
+            // evitando que o banco de dados crashe ao tentar salvar um texto em uma coluna de ID (número).
+            return encontrado && encontrado.id ? encontrado.id : '';
         }
 
         function resolverNomeSetorResponsavel(chamado) {
@@ -404,8 +407,18 @@
 
             const usuarioCriador = document.getElementById('usuarioLogadoDisplay').textContent.trim();
             const inputFile = document.getElementById('fotoChamado');
-
             const formData = new FormData();
+            
+            // Checagem de limite de tamanho de imagem para o Vercel (4.5 MB)
+            if (inputFile.files.length > 0) {
+                const tamanhoEmMB = inputFile.files[0].size / (1024 * 1024);
+                if (tamanhoEmMB > 4.5) {
+                    alert('ERRO: A foto selecionada é muito pesada (maior que 4.5 MB). O servidor não suporta arquivos tão grandes. Reduza a qualidade da imagem ou escolha outra menor.');
+                    return; // Para o envio antes de dar erro no servidor
+                }
+                formData.append('foto', inputFile.files[0]);
+            }
+
             formData.append('descricao', document.getElementById('descricao').value);
             formData.append('loja_id', obterIdOuTexto('loja', document.getElementById('inputLoja').value) || '');
             formData.append('setor_id', obterIdOuTexto('setor', document.getElementById('inputSetor').value) || '');
@@ -414,10 +427,6 @@
             formData.append('setor_responsavel_id', obterIdOuTexto('setor_responsavel', document.getElementById('inputSetorResponsavel').value) || '');
             formData.append('urgencia', document.getElementById('inputUrgencia').value);
             formData.append('criado_por', usuarioCriador);
-
-            if (inputFile.files.length > 0) {
-                formData.append('foto', inputFile.files[0]);
-            }
 
             try {
                 const res = await fetch('/api/chamados', {
@@ -431,11 +440,11 @@
                     document.getElementById('formChamado').reset();
                     carregarChamados();
                 } else {
-                    alert('Erro ao abrir o chamado: ' + (resultado.erro || 'Verifique os dados.'));
+                    alert('Erro ao abrir o chamado: ' + (resultado.erro || 'Verifique se você selecionou os itens corretamente nas listas.'));
                 }
             } catch (err) {
                 console.error("Erro de conexão:", err);
-                alert('Erro de conexão ao salvar o chamado.');
+                alert('Erro de conexão ao salvar o chamado. Tente sem a foto se o problema persistir.');
             }
         });
 
@@ -577,7 +586,7 @@
                 await fetch(`/api/chamados/${id}/responsavel`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ responsavel_id: responsavelId ? Number(responsavelId) : null })
+                    body: JSON.stringify({ responsavel_id: responsavelId && !isNaN(responsavelId) ? Number(responsavelId) : null })
                 });
             } catch (e) { console.error(e); }
         }
@@ -587,7 +596,7 @@
                 await fetch(`/api/chamados/${id}/setor-responsavel`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ setor_responsavel_id: setorResponsavelId ? Number(setorResponsavelId) : null })
+                    body: JSON.stringify({ setor_responsavel_id: setorResponsavelId && !isNaN(setorResponsavelId) ? Number(setorResponsavelId) : null })
                 });
             } catch (e) { console.error(e); }
         }
@@ -700,7 +709,6 @@
             carregarChamados();
         }
 
-        // Correção aplicada aqui para garantir a execução imediata ao carregar o script
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', inicializarApp);
         } else {
