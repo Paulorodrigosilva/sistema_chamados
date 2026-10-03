@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - SyncStore</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            background-color: #1a1a2e; 
+            color: #ffffff;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+        }
+        .main-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .welcome-header { text-align: center; margin-bottom: 25px; }
+        .welcome-header h1 { font-size: 2rem; margin: 0 0 10px 0; color: #ffffff; font-weight: 600; }
+        .syncstore-title { font-size: 2.2rem; font-weight: bold; color: #f39c12; margin: 0 0 8px 0; letter-spacing: 0.5px; }
+        .syncstore-subtitle { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #8c8c9e; margin: 0; }
+        .form-container { 
+            background: #ffffff; 
+            color: #333333;
+            padding: 25px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+        button { margin-top: 15px; cursor: pointer; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; width: 100%; font-weight: bold; }
+        button:hover { background-color: #0056b3; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        h2 { margin-top: 0; color: #333; text-align: center; font-size: 1.3rem; }
+        label { font-size: 14px; color: #555; display: block; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="main-wrapper">
+        <div class="welcome-header">
+            <h1>Seja bem-vindo!</h1>
+            <div class="syncstore-title">SyncStore</div>
+            <p class="syncstore-subtitle">UM NOVO CONCEITO EM GESTÃO!</p>
+        </div>
+
+        <div class="form-container">
+            <!-- Form Login -->
+            <div id="secaoLogin">
+                <h2>Entrar no Sistema</h2>
+                <form id="formLogin">
+                    <div>
+                        <label>Usuário:</label>
+                        <input type="text" id="loginUsuario" required autocomplete="username">
+                    </div>
+                    <div>
+                        <label>Senha:</label>
+                        <input type="password" id="loginSenha" required autocomplete="current-password">
+                    </div>
+                    <button type="submit">Entrar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('formLogin').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const usuarioInput = document.getElementById('loginUsuario').value.trim();
+            const senha = document.getElementById('loginSenha').value;
+
+            try {
+                const resposta = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario: usuarioInput, senha })
+                });
+
+                const resultado = await resposta.json();
+                
+                if (resposta.ok && resultado.sucesso) {
+                    const nomeFinal = resultado.usuario || usuarioInput;
+                    const tipoUser = (resultado.tipo || resultado.permissao || 'comum').toLowerCase().trim();
+                    
+                    localStorage.setItem('usuarioLogado', nomeFinal);
+                    localStorage.setItem('usuario', nomeFinal);
+                    localStorage.setItem('tipoUsuario', tipoUser);
+                    
+                    if (['master', 'administrador', 'admin'].includes(tipoUser)) {
+                        localStorage.setItem('isMaster', 'true');
+                    } else {
+                        localStorage.removeItem('isMaster');
+                    }
+
+                    window.location.href = 'index.html';
+                } else {
+                    alert(resultado.mensagem || 'Usuário ou senha inválidos.');
+                }
+            } catch (err) {
+                console.error("Erro no login:", err);
+                alert('Erro de conexão com o servidor.');
+            }
+        });
+    </script>
+</body>
+</html>

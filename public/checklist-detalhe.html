@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Execução de Checklist</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
+        header { display: flex; justify-content: space-between; align-items: center; background: #343a40; color: white; padding: 10px 20px; border-radius: 5px; }
+        .card { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 8px 15px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        .item-row { display: flex; flex-direction: column; padding: 15px 0; border-bottom: 1px solid #dee2e6; gap: 10px; }
+        .item-header { display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap; }
+        .item-info { display: flex; align-items: center; gap: 10px; flex-grow: 1; font-size: 16px; font-weight: bold; }
+        .acoes-item { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .status-options { display: flex; gap: 15px; align-items: center; font-size: 14px; }
+        .status-options label { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: normal; }
+        .observacao-container { width: 100%; margin-top: 5px; }
+        .observacao-container textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; font-family: Arial, sans-serif; font-size: 14px; box-sizing: border-box; }
+        .fotos-container { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .foto-preview { width: 60px; height: 60px; border-radius: 4px; border: 1px solid #ccc; object-fit: cover; }
+        .foto-wrapper { position: relative; display: inline-block; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2 id="tituloChecklist">Carregando Checklist...</h2>
+        <div>
+            <span id="infoUsuario" style="margin-right: 15px; font-weight: bold;"></span>
+        </div>
+    </header>
+
+    <div class="card">
+        <h3>Itens de Verificação</h3>
+        <div id="listaItensDetalhe"></div>
+        <button onclick="finalizarChecklist()" style="background-color: #28a745; margin-top: 20px; width: 100%; padding: 12px; font-size: 16px;">Salvar e Concluir Checklist</button>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const checklistId = urlParams.get('id');
+        
+        let usuarioLogado = localStorage.getItem('usuarioLogado') || 
+                            localStorage.getItem('usuario') || 
+                            localStorage.getItem('nomeUsuario') || 
+                            localStorage.getItem('nome') || 
+                            'Administrador';
+
+        document.getElementById('infoUsuario').innerText = `👤 ${usuarioLogado}`;
+
+        let checklistGlobal = null;
+
+        async function carregarDetalhesChecklist() {
+            if (!checklistId) {
+                alert('ID do checklist não especificado.');
+                window.location.href = 'checklists.html';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/checklists/${checklistId}`);
+                if (!res.ok) throw new Error('Erro ao buscar dados do checklist.');
+                
+                checklistGlobal = await res.json();
+                document.getElementById('tituloChecklist').innerText = `📋 ${checklistGlobal.titulo || 'Detalhes do Checklist'}`;
+                renderizarItens();
+
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao carregar os detalhes do checklist.');
+            }
+        }
+
+        function renderizarItens() {
+            const container = document.getElementById('listaItensDetalhe');
+            container.innerHTML = '';
+
+            if (!checklistGlobal.itens || checklistGlobal.itens.length === 0) {
+                container.innerHTML = '<p>Este checklist não possui itens cadastrados.</p>';
+                return;
+            }
+
+            checklistGlobal.itens.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'item-row';
+
+                let listaFotos = [];
+                if (Array.isArray(item.fotos)) {
+                    listaFotos = item.fotos;
+                } else if (item.foto) {
+                    listaFotos = [item.foto];
+                }
+
+                let fotosHtml = '';
+                if (listaFotos.length > 0) {
+                    fotosHtml = `<div class="fotos-container">`;
+                    listaFotos.forEach((foto, fIndex) => {
+                        const fotoSrc = foto.startsWith('/') ? foto : `/${foto}`;
+                        fotosHtml += `
+                            <div class="foto-wrapper">
+                                <a href="${fotoSrc}" target="_blank"><img src="${fotoSrc}" class="foto-preview" title="Ver foto ampliada"></a>
+                                <a href="${fotoSrc}" download="item_${item.id}_foto_${fIndex + 1}.jpg" target="_blank" title="Baixar esta foto" style="position: absolute; bottom: 0; right: 0; background: rgba(0,0,0,0.7); color: white; font-size: 11px; padding: 2px 5px; text-decoration: none; border-bottom-right-radius: 4px;">📥</a>
+                            </div>
+                        `;
+                    });
+                    fotosHtml += `</div>`;
+                }
+
+                const itemId = item.id;
+                const isConforme = item.status === 'conforme';
+                const isNaoConforme = item.status === 'nao_conforme';
+                const observacaoTexto = item.observacao || '';
+
+                row.innerHTML = `
+                    <div class="item-header">
+                        <div class="item-info">
+                            <span>${item.descricao}</span>
+                        </div>
+                        <div class="status-options">
+                            <label style="color: #28a745; font-weight: bold;">
+                                <input type="radio" name="status-${itemId}" value="conforme" ${isConforme ? 'checked' : ''} onchange="atualizarStatusItem('${itemId}', 'conforme')"> Conforme
+                            </label>
+                            <label style="color: #dc3545; font-weight: bold;">
+                                <input type="radio" name="status-${itemId}" value="nao_conforme" ${isNaoConforme ? 'checked' : ''} onchange="atualizarStatusItem('${itemId}', 'nao_conforme')"> Não Conforme
+                            </label>
+                        </div>
+                        <div class="acoes-item">
+                            <div id="container-foto-${itemId}">${fotosHtml}</div>
+                            <input type="file" accept="image/*" multiple id="file-${itemId}" style="display:none;" onchange="enviarFotos(event, '${itemId}')">
+                            <button type="button" onclick="document.getElementById('file-${itemId}').click()" style="background-color: #17a2b8; font-size: 13px; padding: 6px 10px;">📸 ${listaFotos.length > 0 ? 'Adicionar Mais Fotos' : 'Adicionar Fotos'}</button>
+                            ${listaFotos.length > 0 ? `<button type="button" id="btn-baixar-${itemId}" style="background-color: #6c757d; font-size: 13px; padding: 6px 10px;" title="Baixar todas as fotos deste item">📥 Baixar Fotos</button>` : ''}
+                        </div>
+                    </div>
+                    <div class="observacao-container">
+                        <textarea placeholder="Digite as observações para este item..." rows="2" onblur="salvarObservacao('${itemId}', this.value)">${observacaoTexto}</textarea>
+                    </div>
+                `;
+                
+                container.appendChild(row);
+
+                if (listaFotos.length > 0) {
+                    const btnBaixar = document.getElementById(`btn-baixar-${itemId}`);
+                    if (btnBaixar) {
+                        btnBaixar.onclick = () => baixarTodasFotos(listaFotos, itemId);
+                    }
+                }
+            });
+        }
+
+        async function atualizarStatusItem(itemId, status) {
+            try {
+                await fetch(`/api/checklist-itens/${itemId}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+            } catch (err) {
+                console.error("Erro de conexão ao salvar status:", err);
+            }
+        }
+
+        async function salvarObservacao(itemId, observacao) {
+            try {
+                await fetch(`/api/checklist-itens/${itemId}/observacao`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ observacao })
+                });
+            } catch (err) {
+                console.error("Erro de conexão ao salvar observação:", err);
+            }
+        }
+
+        async function enviarFotos(event, itemId) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            const formData = new FormData();
+            
+            // Adiciona todos os arquivos selecionados para o mesmo campo 'fotos'
+            for (let i = 0; i < files.length; i++) {
+                formData.append('fotos', files[i]);
+            }
+
+            try {
+                const res = await fetch(`/api/checklist-itens/${itemId}/foto`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (res.ok) {
+                    carregarDetalhesChecklist(); 
+                } else {
+                    alert('Erro ao enviar as fotos.');
+                }
+            } catch (err) {
+                console.error("Erro ao enviar fotos:", err);
+                alert("Erro ao enviar as fotos.");
+            }
+        }
+
+        function baixarTodasFotos(fotos, itemId) {
+            fotos.forEach((foto, index) => {
+                const fotoSrc = foto.startsWith('/') ? foto : `/${foto}`;
+                const link = document.createElement('a');
+                link.href = fotoSrc;
+                link.download = `item_${itemId}_foto_${index + 1}.jpg`;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        }
+
+        async function finalizarChecklist() {
+            try {
+                const res = await fetch(`/api/checklists/${checklistId}/concluir`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario: usuarioLogado })
+                });
+                
+                if (res.ok) {
+                    alert('Checklist salvo e concluído com sucesso!');
+                    window.location.href = 'checklists.html'; 
+                } else {
+                    alert('Erro ao concluir o checklist no servidor.');
+                }
+            } catch (err) {
+                console.error("Erro ao finalizar:", err);
+                alert('Erro de conexão ao finalizar checklist.');
+            }
+        }
+
+        carregarDetalhesChecklist();
+    </script>
+</body>
+</html>

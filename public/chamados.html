@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestão de Chamados</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
+        header { display: flex; justify-content: space-between; align-items: center; background: #343a40; color: white; padding: 10px 20px; border-radius: 5px; }
+        .user-info { font-size: 14px; color: #e9ecef; margin-right: 15px; }
+        .header-right { display: flex; align-items: center; }
+        .card { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 8px 15px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: left; vertical-align: middle; }
+        th { background-color: #f1f3f5; }
+        .status-aberto { color: #dc3545; font-weight: bold; }
+        .status-andamento { color: #fd7e14; font-weight: bold; }
+        .status-fechado { color: #28a745; font-weight: bold; }
+        
+        /* Estilos de Urgência */
+        .urgencia-baixa { color: #28a745; font-weight: bold; }
+        .urgencia-media { color: #fd7e14; font-weight: bold; }
+        .urgencia-alta { color: #dc3545; font-weight: bold; }
+
+        input, select { padding: 6px; box-sizing: border-box; }
+        textarea { padding: 8px; margin-bottom: 10px; width: 100%; max-width: 690px; height: 80px; box-sizing: border-box; resize: vertical; font-family: Arial, sans-serif; }
+        .filtros-container { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 10px; }
+        .filtros-container div { display: flex; flex-direction: column; }
+        .filtros-container label { font-size: 13px; font-weight: bold; margin-bottom: 3px; color: #495057; }
+        .chamado-link { color: #007bff; cursor: pointer; text-decoration: underline; }
+        .chamado-link:hover { color: #0056b3; }
+        .acoes-container { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+        .select-tabela { width: 130px; font-size: 12px; }
+        .file-group { margin-top: 10px; margin-bottom: 10px; }
+        .miniatura-foto { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 1px solid #ccc; }
+        .miniatura-foto:hover { opacity: 0.8; }
+        
+        /* Modal genérico (Foto e Edição) */
+        #modalFoto, #modalEdicao { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
+        #modalFoto img { max-width: 90%; max-height: 90%; border-radius: 6px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+        #modalFoto span { position: absolute; top: 20px; right: 30px; color: white; font-size: 35px; font-weight: bold; cursor: pointer; }
+        .modal-card { background: white; padding: 25px; border-radius: 8px; width: 450px; max-width: 90%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>Módulo de Chamados</h2>
+        <div>
+            <span id="usuarioLogadoDisplay" style="margin-right: 15px; font-weight: bold; font-size: 14px;"></span>
+        </div>
+    </header>
+
+    <!-- Formulário de Abertura de Chamado -->
+    <div class="card">
+        <h3>Abrir Novo Chamado</h3>
+        <form id="formChamado">
+            <div>
+                <textarea id="descricao" placeholder="Digite detalhadamente a descrição do problema..." required></textarea><br>
+            </div>
+            
+            <div>
+                <input type="text" id="inputLoja" list="listaLojas" placeholder="Loja" autocomplete="off" required>
+                <datalist id="listaLojas"></datalist>
+
+                <input type="text" id="inputSetor" list="listaSetores" placeholder="Setor" autocomplete="off" required>
+                <datalist id="listaSetores"></datalist>
+
+                <input type="text" id="inputEquipamento" list="listaEquipamentos" placeholder="Equipamento/Sistema" autocomplete="off" required>
+                <datalist id="listaEquipamentos"></datalist>
+
+                <input type="text" id="inputResponsavel" list="listaResponsaveis" placeholder="Responsável" autocomplete="off" required>
+                <datalist id="listaResponsaveis"></datalist>
+
+                <input type="text" id="inputSetorResponsavel" list="listaSetoresResp" placeholder="Setor Responsável" autocomplete="off">
+                <datalist id="listaSetoresResp"></datalist>
+
+                <!-- Seleção de Urgência -->
+                <select id="inputUrgencia" required style="height: 31px;">
+                    <option value="" disabled selected>Selecione a Urgência</option>
+                    <option value="Baixa">Baixa</option>
+                    <option value="Média">Média</option>
+                    <option value="Alta">Alta</option>
+                </select>
+                <br>
+            </div>
+
+            <div class="file-group">
+                <label for="fotoChamado" style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #495057;">Anexar Foto (Opcional):</label>
+                <input type="file" id="fotoChamado" accept="image/*">
+            </div>
+
+            <button type="submit" style="background-color: #28a745; margin-top: 10px;">Salvar Chamado</button>
+        </form>
+    </div>
+
+    <!-- Listagem e Filtros de Chamados -->
+    <div class="card">
+        <h3>Lista de Chamados</h3>
+        <div class="filtros-container">
+            <div>
+                <label>Filtrar por Status:</label>
+                <select id="filtroStatus" onchange="carregarChamados()">
+                    <option value="TODOS">Todos</option>
+                    <option value="Aberto" selected>Abertos</option>
+                    <option value="Em Andamento">Em Andamento</option>
+                    <option value="Fechado">Fechados / Resolvidos</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Filtrar por URGÊNCIA:</label>
+                <select id="filtroUrgencia" onchange="carregarChamados()">
+                    <option value="">Todas as Urgências</option>
+                    <option value="Baixa">Baixa</option>
+                    <option value="Média">Média</option>
+                    <option value="Alta">Alta</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Filtrar por Loja:</label>
+                <select id="filtroLoja" onchange="carregarChamados()">
+                    <option value="">Todas as Lojas</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Filtrar por Setor:</label>
+                <select id="filtroSetor" onchange="carregarChamados()">
+                    <option value="">Todos os Setores</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Filtrar por Setor Responsável:</label>
+                <select id="filtroSetorResponsavel" onchange="carregarChamados()">
+                    <option value="">Todos os Setores Resp.</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Filtrar por Responsável:</label>
+                <select id="filtroResponsavel" onchange="carregarChamados()">
+                    <option value="">Todos os Responsáveis</option>
+                </select>
+            </div>
+
+            <div>
+                <label>&nbsp;</label>
+                <button onclick="gerarRelatorioCSV()" style="background-color: #17a2b8;">
+                    Gerar Relatório (CSV)
+                </button>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Foto</th>
+                    <th>Urgência</th>
+                    <th>Aberto por</th>
+                    <th>Descrição</th>
+                    <th>Loja</th>
+                    <th>Setor</th>
+                    <th>Equipamento</th>
+                    <th>Responsável</th>
+                    <th>Setor Responsável</th>
+                    <th>Data / Hora</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaChamados">
+                <!-- Preenchido via JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal para ampliar a foto ao clicar -->
+    <div id="modalFoto" onclick="fecharModalFoto()">
+        <span onclick="fecharModalFoto()">&times;</span>
+        <img id="imgModalAmpliada" src="" alt="Foto Ampliada">
+    </div>
+
+    <!-- Modal para Edição da Descrição -->
+    <div id="modalEdicao">
+        <div class="modal-card">
+            <h3>Editar Descrição do Chamado #<span id="editChamadoId"></span></h3>
+            <textarea id="editDescricaoInput" style="width: 100%; height: 100px; margin-top: 10px;"></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button type="button" onclick="fecharModalEdicao()" style="background-color: #6c757d;">Cancelar</button>
+                <button type="button" onclick="salvarEdicaoDescricao()" style="background-color: #28a745;">Salvar Alteração</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cacheLojas = [];
+        let cacheSetores = [];
+        let cacheEquipamentos = [];
+        let cacheResponsaveis = [];
+        let chamadoEditandoId = null;
+
+        function formatarDataHora(dataString) {
+            if (!dataString) return '-';
+            const limpo = dataString.replace('Z', '').replace('T', ' ');
+            const [dataPart, horaPart] = limpo.split(' ');
+            if (!dataPart) return dataString;
+
+            const [ano, mes, dia] = dataPart.split('-');
+            const hora = horaPart ? horaPart.substring(0, 8) : '';
+
+            if (ano && mes && dia) {
+                return `${dia}/${mes}/${ano}${hora ? ' ' + hora : ''}`;
+            }
+
+            const d = new Date(dataString);
+            return isNaN(d) ? dataString : d.toLocaleString('pt-BR');
+        }
+
+        function extrairNomeItem(item) {
+            if (!item) return '';
+            if (typeof item === 'string') return item;
+            return item.nome || item.descricao || item.nome_loja || item.razao_social || '';
+        }
+
+        async function carregarUsuarioLogado() {
+            const elUsuario = document.getElementById('usuarioLogadoDisplay');
+            try {
+                const res = await fetch('/api/usuario-atual');
+                if (res.ok) {
+                    const usuario = await res.json();
+                    if (elUsuario) elUsuario.textContent = usuario.email || usuario.nome || 'Usuário';
+                    return;
+                }
+            } catch (e) {
+                console.warn("Rota de API de usuário não encontrada, tentando localStorage...");
+            }
+
+            const usuarioSalvo = localStorage.getItem('usuarioLogado') || sessionStorage.getItem('usuarioLogado');
+            if (usuarioSalvo) {
+                if (elUsuario) elUsuario.textContent = usuarioSalvo;
+            } else {
+                if (elUsuario) elUsuario.textContent = 'paulo.silva@meupontonovo.com.br';
+            }
+        }
+
+        async function carregarSelects() {
+            try {
+                const [resLojas, resSetores, resEquip, resResp] = await Promise.all([
+                    fetch('/api/lojas'),
+                    fetch('/api/setores'),
+                    fetch('/api/equipamentos'),
+                    fetch('/api/responsaveis')
+                ]);
+
+                if (resLojas.ok) {
+                    cacheLojas = await resLojas.json();
+                    document.getElementById('listaLojas').innerHTML = cacheLojas
+                        .map(l => `<option value="${extrairNomeItem(l)}">`).join('');
+                    document.getElementById('filtroLoja').innerHTML = '<option value="">Todas as Lojas</option>' + 
+                        cacheLojas.map(l => {
+                            const nome = extrairNomeItem(l);
+                            return `<option value="${nome}">${nome}</option>`;
+                        }).join('');
+                }
+
+                if (resSetores.ok) {
+                    cacheSetores = await resSetores.json();
+                    cacheSetores.sort((a, b) => extrairNomeItem(a).localeCompare(extrairNomeItem(b), 'pt-BR', { sensitivity: 'base' }));
+
+                    const optionsSetores = cacheSetores.map(s => `<option value="${extrairNomeItem(s)}">`).join('');
+                    
+                    document.getElementById('listaSetores').innerHTML = optionsSetores;
+                    document.getElementById('listaSetoresResp').innerHTML = optionsSetores;
+
+                    const selectSetoresHTML = '<option value="">Todos os Setores</option>' + 
+                        cacheSetores.map(s => {
+                            const nome = extrairNomeItem(s);
+                            return `<option value="${nome}">${nome}</option>`;
+                        }).join('');
+
+                    document.getElementById('filtroSetor').innerHTML = selectSetoresHTML;
+                    document.getElementById('filtroSetorResponsavel').innerHTML = '<option value="">Todos os Setores Resp.</option>' + 
+                        cacheSetores.map(s => {
+                            const nome = extrairNomeItem(s);
+                            return `<option value="${nome}">${nome}</option>`;
+                        }).join('');
+                }
+
+                if (resEquip.ok) {
+                    cacheEquipamentos = await resEquip.json();
+                    cacheEquipamentos.sort((a, b) => extrairNomeItem(a).localeCompare(extrairNomeItem(b), 'pt-BR', { sensitivity: 'base' }));
+
+                    document.getElementById('listaEquipamentos').innerHTML = cacheEquipamentos
+                        .map(e => `<option value="${extrairNomeItem(e)}">`).join('');
+                }
+
+                if (resResp.ok) {
+                    cacheResponsaveis = await resResp.json();
+                    cacheResponsaveis.sort((a, b) => extrairNomeItem(a).localeCompare(extrairNomeItem(b), 'pt-BR', { sensitivity: 'base' }));
+
+                    document.getElementById('listaResponsaveis').innerHTML = cacheResponsaveis
+                        .map(r => `<option value="${extrairNomeItem(r)}">`).join('');
+                    
+                    document.getElementById('filtroResponsavel').innerHTML = '<option value="">Todos os Responsáveis</option>' + 
+                        cacheResponsaveis.map(r => {
+                            const nome = extrairNomeItem(r);
+                            return `<option value="${nome}">${nome}</option>`;
+                        }).join('');
+                }
+            } catch (e) {
+                console.error("Erro ao carregar selects:", e);
+            }
+        }
+
+        function obterIdOuTexto(tipo, nome) {
+            if (!nome || !nome.trim()) return null;
+            const nomeTratado = nome.trim();
+            
+            let cache;
+            if (tipo === 'loja') cache = cacheLojas;
+            else if (tipo === 'setor' || tipo === 'setor_responsavel') cache = cacheSetores;
+            else if (tipo === 'equipamento') cache = cacheEquipamentos;
+            else if (tipo === 'responsavel') cache = cacheResponsaveis;
+
+            const encontrado = (cache || []).find(item => extrairNomeItem(item).trim().toLowerCase() === nomeTratado.toLowerCase());
+            return encontrado && encontrado.id ? encontrado.id : nomeTratado;
+        }
+
+        function resolverNomeSetorResponsavel(chamado) {
+            const valorDireto = 
+                chamado.setor_responsavel || 
+                chamado.setorResponsavel || 
+                chamado.setor_responsavel_nome || 
+                chamado.setorResponsavelNome;
+
+            if (valorDireto) {
+                if (!isNaN(valorDireto)) {
+                    const setorEncontrado = cacheSetores.find(s => String(s.id) === String(valorDireto));
+                    if (setorEncontrado) return extrairNomeItem(setorEncontrado);
+                } else {
+                    return String(valorDireto);
+                }
+            }
+            return '-';
+        }
+
+        function abrirModalFoto(url) {
+            document.getElementById('imgModalAmpliada').src = url;
+            document.getElementById('modalFoto').style.display = 'flex';
+        }
+
+        function fecharModalFoto() {
+            document.getElementById('modalFoto').style.display = 'none';
+        }
+
+        function abrirModalEdicao(id, descricaoAtual) {
+            chamadoEditandoId = id;
+            document.getElementById('editChamadoId').textContent = id;
+            document.getElementById('editDescricaoInput').value = descricaoAtual;
+            document.getElementById('modalEdicao').style.display = 'flex';
+        }
+
+        function fecharModalEdicao() {
+            chamadoEditandoId = null;
+            document.getElementById('modalEdicao').style.display = 'none';
+        }
+
+        async function salvarEdicaoDescricao() {
+            if (!chamadoEditandoId) return;
+            const novaDescricao = document.getElementById('editDescricaoInput').value.trim();
+
+            if (!novaDescricao) {
+                alert('A descrição não pode ficar vazia.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/chamados/${chamadoEditandoId}/descricao`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ descricao: novaDescricao })
+                });
+
+                if (res.ok) {
+                    alert('Descrição atualizada com sucesso!');
+                    fecharModalEdicao();
+                    carregarChamados();
+                } else {
+                    alert('Erro ao atualizar a descrição.');
+                }
+            } catch (e) {
+                console.error("Erro ao salvar descrição:", e);
+                alert('Erro de conexão ao salvar.');
+            }
+        }
+
+        document.getElementById('formChamado').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const usuarioCriador = document.getElementById('usuarioLogadoDisplay').textContent.trim();
+            const inputFile = document.getElementById('fotoChamado');
+
+            const formData = new FormData();
+            formData.append('descricao', document.getElementById('descricao').value);
+            formData.append('loja_id', obterIdOuTexto('loja', document.getElementById('inputLoja').value) || '');
+            formData.append('setor_id', obterIdOuTexto('setor', document.getElementById('inputSetor').value) || '');
+            formData.append('equipamento_id', obterIdOuTexto('equipamento', document.getElementById('inputEquipamento').value) || '');
+            formData.append('responsavel_id', obterIdOuTexto('responsavel', document.getElementById('inputResponsavel').value) || '');
+            formData.append('setor_responsavel_id', obterIdOuTexto('setor_responsavel', document.getElementById('inputSetorResponsavel').value) || '');
+            formData.append('urgencia', document.getElementById('inputUrgencia').value);
+            formData.append('criado_por', usuarioCriador);
+
+            if (inputFile.files.length > 0) {
+                formData.append('foto', inputFile.files[0]);
+            }
+
+            try {
+                const res = await fetch('/api/chamados', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const resultado = await res.json();
+                if (res.ok && resultado.sucesso) {
+                    alert('Chamado aberto com sucesso!');
+                    document.getElementById('formChamado').reset();
+                    carregarChamados();
+                } else {
+                    alert('Erro ao abrir o chamado: ' + (resultado.erro || 'Verifique os dados.'));
+                }
+            } catch (err) {
+                console.error("Erro de conexão:", err);
+                alert('Erro de conexão ao salvar o chamado.');
+            }
+        });
+
+        async function carregarChamados() {
+            try {
+                const res = await fetch('/api/chamados');
+                if (!res.ok) return;
+                const chamados = await res.json();
+                
+                const filtroStatus = document.getElementById('filtroStatus').value;
+                const filtroUrgencia = document.getElementById('filtroUrgencia').value;
+                const filtroLoja = document.getElementById('filtroLoja').value;
+                const filtroSetor = document.getElementById('filtroSetor').value;
+                const filtroSetorResp = document.getElementById('filtroSetorResponsavel').value;
+                const filtroResponsavel = document.getElementById('filtroResponsavel').value;
+                
+                const tbody = document.getElementById('tabelaChamados');
+                tbody.innerHTML = '';
+
+                const filtrados = (chamados || []).filter(c => {
+                    let passaStatus = true;
+                    if (filtroStatus === 'Aberto') passaStatus = (c.status === 'Aberto');
+                    else if (filtroStatus === 'Em Andamento') passaStatus = (c.status === 'Em Andamento');
+                    else if (filtroStatus === 'Fechado') passaStatus = (c.status === 'Fechado' || c.status === 'Resolvido');
+
+                    let setorRespNome = resolverNomeSetorResponsavel(c);
+                    let urgenciaChamado = c.urgencia || 'Média';
+
+                    let passaUrgencia = filtroUrgencia === '' || urgenciaChamado === filtroUrgencia;
+                    let passaLoja = filtroLoja === '' || c.loja === filtroLoja;
+                    let passaSetor = filtroSetor === '' || c.setor === filtroSetor;
+                    let passaSetorResp = filtroSetorResp === '' || setorRespNome === filtroSetorResp;
+                    let passaResponsavel = filtroResponsavel === '' || c.responsavel === filtroResponsavel;
+
+                    return passaStatus && passaUrgencia && passaLoja && passaSetor && passaSetorResp && passaResponsavel;
+                });
+
+                filtrados.forEach(c => {
+                    const tr = document.createElement('tr');
+                    
+                    let statusClass = 'status-aberto';
+                    if (c.status === 'Em Andamento') statusClass = 'status-andamento';
+                    else if (c.status === 'Fechado' || c.status === 'Resolvido') statusClass = 'status-fechado';
+
+                    let urgenciaAtual = c.urgencia || 'Média';
+                    let urgenciaClass = 'urgencia-media';
+                    if (urgenciaAtual === 'Baixa') urgenciaClass = 'urgencia-baixa';
+                    else if (urgenciaAtual === 'Alta') urgenciaClass = 'urgencia-alta';
+
+                    const descCurta = c.descricao.length > 50 ? c.descricao.substring(0, 50) + '...' : c.descricao;
+                    
+                    let selectUrgenciaHTML = `
+                        <select class="select-tabela" onchange="atualizarUrgencia(${c.id}, this.value)">
+                            <option value="Baixa" ${urgenciaAtual === 'Baixa' ? 'selected' : ''}>Baixa</option>
+                            <option value="Média" ${urgenciaAtual === 'Média' ? 'selected' : ''}>Média</option>
+                            <option value="Alta" ${urgenciaAtual === 'Alta' ? 'selected' : ''}>Alta</option>
+                        </select>
+                    `;
+
+                    let optionsResp = cacheResponsaveis.map(r => {
+                        const nome = extrairNomeItem(r);
+                        return `<option value="${r.id || nome}" ${nome === c.responsavel ? 'selected' : ''}>${nome}</option>`;
+                    }).join('');
+                    let selectResponsavelHTML = `<select class="select-tabela" onchange="atualizarResponsavel(${c.id}, this.value)"><option value="">Selecione...</option>${optionsResp}</select>`;
+
+                    let setorRespAtualNome = resolverNomeSetorResponsavel(c);
+                    let optionsSetorResp = cacheSetores.map(s => {
+                        const nome = extrairNomeItem(s);
+                        return `<option value="${s.id || nome}" ${nome === setorRespAtualNome ? 'selected' : ''}>${nome}</option>`;
+                    }).join('');
+                    let selectSetorRespHTML = `<select class="select-tabela" onchange="atualizarSetorResponsavel(${c.id}, this.value)"><option value="">Selecione...</option>${optionsSetorResp}</select>`;
+
+                    let colunaFoto = '-';
+                    if (c.foto_url) {
+                        colunaFoto = `<img src="${c.foto_url}" class="miniatura-foto" onclick="abrirModalFoto('${c.foto_url}')" title="Clique para ampliar">`;
+                    }
+
+                    let botaoEditarDesc = `<button onclick="abrirModalEdicao(${c.id}, \`${c.descricao.replace(/`/g, '\\`')}\`)" style="background-color: #17a2b8; padding: 4px 8px; margin-bottom: 4px;">Editar Desc.</button><br>`;
+
+                    let botoesAcao = '';
+                    if (c.status === 'Aberto') {
+                        botoesAcao = `
+                            <button onclick="mudarStatus(${c.id}, 'Em Andamento')" style="background-color: #fd7e14; padding: 4px 8px;">Andamento</button>
+                            <button onclick="mudarStatus(${c.id}, 'Fechado')" style="background-color: #28a745; padding: 4px 8px;">Fechar</button>
+                        `;
+                    } else if (c.status === 'Em Andamento') {
+                        botoesAcao = `
+                            <button onclick="mudarStatus(${c.id}, 'Fechado')" style="background-color: #28a745; padding: 4px 8px;">Fechar</button>
+                            <button onclick="mudarStatus(${c.id}, 'Aberto')" style="background-color: #ffc107; color: black; padding: 4px 8px;">Reabrir</button>
+                        `;
+                    } else {
+                        botoesAcao = `
+                            <button onclick="mudarStatus(${c.id}, 'Aberto')" style="background-color: #ffc107; color: black; padding: 4px 8px;">Reabrir</button>
+                        `;
+                    }
+
+                    tr.innerHTML = `
+                        <td><span class="chamado-link" onclick="verDetalhes(${c.id})">#${c.id}</span></td>
+                        <td>${colunaFoto}</td>
+                        <td>${selectUrgenciaHTML}</td>
+                        <td>${c.criado_por || '-'}</td>
+                        <td><span class="chamado-link" onclick="verDetalhes(${c.id})" title="${c.descricao}">${descCurta}</span></td>
+                        <td>${c.loja || '-'}</td>
+                        <td>${c.setor || '-'}</td>
+                        <td>${c.equipamento || '-'}</td>
+                        <td>${selectResponsavelHTML}</td>
+                        <td>${selectSetorRespHTML}</td>
+                        <td>${formatarDataHora(c.data_abertura)}</td>
+                        <td class="${statusClass}">${c.status}</td>
+                        <td>
+                            <div class="acoes-container" style="display: flex; flex-direction: column; align-items: flex-start;">
+                                <div>${botaoEditarDesc}</div>
+                                <div style="display: flex; gap: 4px;">
+                                    ${botoesAcao}
+                                    <button onclick="excluirChamado(${c.id})" style="background-color: #dc3545; padding: 4px 8px;">Excluir</button>
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch(e) {
+                console.error("Erro ao carregar chamados:", e);
+            }
+        }
+
+        async function atualizarUrgencia(id, novaUrgencia) {
+            try {
+                await fetch(`/api/chamados/${id}/urgencia`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urgencia: novaUrgencia })
+                });
+            } catch (e) { console.error("Erro ao atualizar urgência:", e); }
+        }
+
+        async function atualizarResponsavel(id, responsavelId) {
+            try {
+                await fetch(`/api/chamados/${id}/responsavel`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ responsavel_id: responsavelId ? Number(responsavelId) : null })
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function atualizarSetorResponsavel(id, setorResponsavelId) {
+            try {
+                await fetch(`/api/chamados/${id}/setor-responsavel`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ setor_responsavel_id: setorResponsavelId ? Number(setorResponsavelId) : null })
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function verDetalhes(id) {
+            try {
+                const res = await fetch('/api/chamados');
+                const chamados = await res.json();
+                const chamado = chamados.find(c => c.id === id);
+
+                if (!chamado) return alert("Chamado não encontrado.");
+
+                const dataFormatada = formatarDataHora(chamado.data_abertura);
+                const setorRespNome = resolverNomeSetorResponsavel(chamado);
+                const urgenciaChamado = chamado.urgencia || 'Média';
+
+                let detalhesTexto = 
+                    `📋 DETALHES DO CHAMADO #${chamado.id}\n\n` +
+                    `🚨 Urgência: ${urgenciaChamado}\n` +
+                    `📅 Data/Hora: ${dataFormatada}\n` +
+                    `📌 Status: ${chamado.status}\n` +
+                    `👤 Aberto por: ${chamado.criado_por || '-'}\n` +
+                    `🏬 Loja: ${chamado.loja || '-'}\n` +
+                    `🏢 Setor: ${chamado.setor || '-'}\n` +
+                    `⚙️ Equipamento: ${chamado.equipamento || '-'}\n` +
+                    `👤 Responsável: ${chamado.responsavel || '-'}\n` +
+                    `🏢 Setor Responsável: ${setorRespNome}\n\n` +
+                    `💬 Descrição:\n${chamado.descricao}`;
+
+                alert(detalhesTexto);
+                
+                if (chamado.foto_url) {
+                    if (confirm("Este chamado possui uma foto anexada. Deseja abri-la em tamanho real?")) {
+                        abrirModalFoto(chamado.foto_url);
+                    }
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function mudarStatus(id, novoStatus) {
+            await fetch(`/api/chamados/${id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: novoStatus })
+            });
+            carregarChamados();
+        }
+
+        async function excluirChamado(id) {
+            if (!confirm(`Deseja excluir o chamado #${id}?`)) return;
+            const res = await fetch(`/api/chamados/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                alert('Excluído com sucesso!');
+                carregarChamados();
+            } else {
+                alert('Erro ao excluir.');
+            }
+        }
+
+        function gerarRelatorioCSV() {
+            const tabela = document.querySelector('table');
+            const linhas = tabela.querySelectorAll('tr');
+            
+            if (linhas.length <= 1) {
+                alert('Não há dados disponíveis na tabela para gerar o relatório.');
+                return;
+            }
+
+            let csvContent = '\uFEFF';
+
+            linhas.forEach(linha => {
+                const colunas = linha.querySelectorAll('th, td');
+                const dadosLinha = [];
+
+                colunas.forEach((coluna, index) => {
+                    if (index === 1 || index === colunas.length - 1) return;
+
+                    let texto = '';
+                    const select = coluna.querySelector('select');
+                    
+                    if (select) {
+                        texto = select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : '';
+                    } else {
+                        texto = coluna.innerText || coluna.textContent;
+                    }
+
+                    texto = texto.trim().replace(/"/g, '""');
+                    dadosLinha.push(`"${texto}"`);
+                });
+
+                csvContent += dadosLinha.join(';') + '\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            
+            const dataHoje = new Date().toISOString().slice(0, 10);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `relatorio_chamados_${dataHoje}.csv`);
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function inicializarApp() {
+            await carregarUsuarioLogado();
+            await carregarSelects();
+            carregarChamados();
+        }
+
+        // Correção aplicada aqui para garantir a execução imediata ao carregar o script
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', inicializarApp);
+        } else {
+            inicializarApp();
+        }
+    </script>
+</body>
+</html>

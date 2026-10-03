@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerenciamento de Cadastros de Apoio</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
+        header { display: flex; justify-content: space-between; align-items: center; background: #343a40; color: white; padding: 10px 20px; border-radius: 5px; }
+        .card { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        button { padding: 8px 15px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        
+        /* Modal de Gerenciamento */
+        #modalGerenciar { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 500px; max-height: 80vh; overflow-y: auto; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>Módulo de Cadastros de Apoio</h2>
+         <div>
+            <span id="infoUsuario" style="margin-right: 15px; font-weight: bold;"></span>
+        </div>
+    </header>
+
+    <!-- Cadastros de Apoio -->
+    <div class="card">
+        <h3>Cadastros de Apoio</h3>
+        <div class="btn-group">
+            <button onclick="cadastrarLoja()">+ Adicionar Loja</button>
+            <button onclick="cadastrarSetor()">+ Adicionar Setor</button>
+            <button onclick="cadastrarEquipamento()">+ Adicionar Equipamento</button>
+            <button onclick="cadastrarResponsavel()">+ Adicionar Responsável</button>
+            <button onclick="abrirGerenciador()" style="background-color: #6c757d;">⚙️ Gerenciar / Editar / Excluir</button>
+        </div>
+    </div>
+
+    <!-- Modal de Gerenciamento de Cadastros -->
+    <div id="modalGerenciar">
+        <div class="modal-content">
+            <h3>Gerenciar Cadastros de Apoio</h3>
+            
+            <p style="font-size: 13px; color: #6c757d;">Edite ou exclua itens cadastrados:</p>
+            
+            <div id="listaGerenciamento">
+                <!-- Preenchido via JS -->
+            </div>
+
+            <br>
+            <button onclick="fecharGerenciador()" style="background-color: #6c757d; width: 100%;">Fechar</button>
+        </div>
+    </div>
+
+    <script>
+        let cacheLojas = [];
+        let cacheSetores = [];
+        let cacheEquipamentos = [];
+        let cacheResponsaveis = [];
+
+        async function cadastrarLoja() {
+            const nome = prompt("Nome/Número da Loja:");
+            if (!nome) return;
+            const res = await fetch('/api/lojas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome })
+            });
+            if (res.ok) { alert('Loja cadastrada com sucesso!'); carregarSelects(); }
+            else { alert('Erro ao cadastrar loja.'); }
+        }
+
+        async function cadastrarSetor() {
+            const nome = prompt("Nome do Setor:");
+            if (!nome) return;
+            const res = await fetch('/api/setores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome })
+            });
+            if (res.ok) { alert('Setor cadastrado com sucesso!'); carregarSelects(); }
+            else { alert('Erro ao cadastrar setor.'); }
+        }
+
+        async function cadastrarEquipamento() {
+            const nome = prompt("Nome do Equipamento:");
+            if (!nome) return;
+            const res = await fetch('/api/equipamentos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome })
+            });
+            if (res.ok) { alert('Equipamento cadastrado com sucesso!'); carregarSelects(); }
+            else { alert('Erro ao cadastrar equipamento.'); }
+        }
+
+        async function cadastrarResponsavel() {
+            const nome = prompt("Nome do Responsável:");
+            if (!nome) return;
+            const res = await fetch('/api/responsaveis', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome })
+            });
+            if (res.ok) { alert('Responsável cadastrado com sucesso!'); carregarSelects(); }
+            else { alert('Erro ao cadastrar responsável.'); }
+        }
+
+        async function carregarSelects() {
+            try {
+                const resLojas = await fetch('/api/lojas');
+                if (resLojas.ok) cacheLojas = await resLojas.json();
+
+                const resSetores = await fetch('/api/setores');
+                if (resSetores.ok) cacheSetores = await resSetores.json();
+
+                const resEquip = await fetch('/api/equipamentos');
+                if (resEquip.ok) cacheEquipamentos = await resEquip.json();
+
+                const resResp = await fetch('/api/responsaveis');
+                if (resResp.ok) cacheResponsaveis = await resResp.json();
+            } catch (e) {
+                console.error("Erro ao carregar dados:", e);
+            }
+        }
+
+        // Funções do Modal de Gerenciamento (Edição e Exclusão)
+        async function abrirGerenciador() {
+            await carregarSelects(); // Atualiza os caches
+            const container = document.getElementById('listaGerenciamento');
+            container.innerHTML = '';
+
+            function criarSecao(titulo, tipo, dados) {
+                let html = `<h4 style="margin-bottom: 5px; color: #333;">${titulo}</h4>`;
+                if (dados.length === 0) {
+                    html += `<p style="font-size:12px; color:#999; margin-top:0;">Nenhum cadastrado.</p>`;
+                } else {
+                    html += `<ul style="padding-left: 20px; font-size: 14px; margin-top: 5px;">`;
+                    dados.forEach(item => {
+                        const nomeSeguro = encodeURIComponent(item.nome);
+                        html += `
+                            <li style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                <span>[ID: ${item.id}] ${item.nome}</span>
+                                <div>
+                                    <button onclick="editarApoio('${tipo}', ${item.id}, decodeURIComponent('${nomeSeguro}'))" style="background-color: #ffc107; color: black; padding: 2px 6px; font-size: 11px; margin-right: 5px;">Editar</button>
+                                    <button onclick="excluirApoio('${tipo}', ${item.id})" style="background-color: #dc3545; padding: 2px 6px; font-size: 11px;">Excluir</button>
+                                </div>
+                            </li>`;
+                    });
+                    html += `</ul>`;
+                }
+                return html;
+            }
+
+            container.innerHTML += criarSecao('Lojas', 'lojas', cacheLojas);
+            container.innerHTML += criarSecao('Setores', 'setores', cacheSetores);
+            container.innerHTML += criarSecao('Equipamentos', 'equipamentos', cacheEquipamentos);
+            container.innerHTML += criarSecao('Responsáveis', 'responsaveis', cacheResponsaveis);
+
+            document.getElementById('modalGerenciar').style.display = 'flex';
+        }
+
+        function fecharGerenciador() {
+            document.getElementById('modalGerenciar').style.display = 'none';
+            carregarSelects();
+        }
+
+        async function editarApoio(tipo, id, nomeAtual) {
+            const novoNome = prompt(`Editar nome para (${tipo}):`, nomeAtual);
+            if (!novoNome || novoNome.trim() === '' || novoNome === nomeAtual) return;
+
+            try {
+                const res = await fetch(`/api/${tipo}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome: novoNome.trim() })
+                });
+
+                if (res.ok) {
+                    alert('Item atualizado com sucesso!');
+                    abrirGerenciador(); 
+                } else {
+                    const erroData = await res.json().catch(() => ({}));
+                    alert('Erro ao atualizar o item: ' + (erroData.erro || 'Verifique o servidor.'));
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Erro de conexão ao tentar editar.');
+            }
+        }
+
+        async function excluirApoio(tipo, id) {
+            if (!confirm(`Deseja realmente excluir este item (ID: ${id})?`)) return;
+
+            try {
+                const res = await fetch(`/api/${tipo}/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    alert('Item excluído com sucesso!');
+                    abrirGerenciador(); 
+                } else {
+                    alert('Erro ao excluir o item.');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Erro de conexão.');
+            }
+        }
+
+        carregarSelects();
+    </script>
+</body>
+</html>

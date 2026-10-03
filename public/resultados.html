@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados e Relatório - Serviços Prestados</title>
+    <!-- Google Fonts & Bootstrap Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+        }
+        .navbar-custom {
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            padding: 15px 30px;
+        }
+        .card-metric {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s ease;
+        }
+        .card-metric:hover {
+            transform: translateY(-3px);
+        }
+        .card-metric .card-body {
+            padding: 20px;
+        }
+        .metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .table-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            background: #fff;
+        }
+        .table th {
+            font-weight: 600;
+            color: #6c757d;
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #edf2f7;
+            padding: 12px 16px;
+        }
+        .table td {
+            padding: 14px 16px;
+            vertical-align: middle;
+            color: #4a5568;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+        }
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            border-color: #3b82f6;
+        }
+        .btn-modern {
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Topbar / Cabeçalho -->
+    <div class="navbar-custom d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0 fw-bold text-dark">Painel de Resultados e Relatórios</h4>
+            <p class="text-muted small mb-0">Acompanhamento consolidado de Chamados, Ordens de Serviço e Planos de Ação</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-secondary small">Logado como: <strong id="usuarioLogado" class="text-dark">Usuário</strong></span>
+        </div>
+    </div>
+
+    <div class="container-fluid px-4">
+
+        <!-- Cards de Resumo Estilo Dashboard -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card card-metric bg-white">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small fw-semibold">TOTAL DE REGISTROS</span>
+                            <h2 class="fw-bold mt-1 mb-0 text-primary" id="totalRegistros">0</h2>
+                        </div>
+                        <div class="metric-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-collection"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-metric bg-white">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small fw-semibold">CONCLUÍDOS / FINALIZADOS</span>
+                            <h2 class="fw-bold mt-1 mb-0 text-success" id="totalConcluidos">0</h2>
+                        </div>
+                        <div class="metric-icon bg-success bg-opacity-10 text-success">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-metric bg-white">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small fw-semibold">EM ANDAMENTO / ABERTOS</span>
+                            <h2 class="fw-bold mt-1 mb-0 text-warning" id="totalAbertos">0</h2>
+                        </div>
+                        <div class="metric-icon bg-warning bg-opacity-10 text-warning">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-metric bg-white">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small fw-semibold">CHAMADOS / OS</span>
+                            <h2 class="fw-bold mt-1 mb-0 text-info" id="totalChamados">0</h2>
+                        </div>
+                        <div class="metric-icon bg-info bg-opacity-10 text-info">
+                            <i class="bi bi-tools"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seção de Filtros Combinados -->
+        <div class="card table-card p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-filter me-2"></i>Filtros e Consultas Integradas</h5>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm btn-modern" onclick="exportarCSV()">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Exportar CSV
+                    </button>
+                    <button class="btn btn-primary btn-sm btn-modern" onclick="carregarDados()">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Atualizar Dados
+                    </button>
+                </div>
+            </div>
+            <div class="row g-3">
+                <!-- Filtro por Tipo de Registro -->
+                <div class="col-md-3">
+                    <select id="filtroTipo" class="form-select" onchange="filtrarTabela()">
+                        <option value="">Todos os Tipos</option>
+                        <option value="Chamado">Chamado</option>
+                        <option value="Ordem de Serviço">Ordem de Serviço (OS)</option>
+                        <option value="Plano de Ação">Plano de Ação</option>
+                    </select>
+                </div>
+                <!-- Filtro por Status unificado -->
+                <div class="col-md-3">
+                    <select id="filtroStatus" class="form-select" onchange="filtrarTabela()">
+                        <option value="">Todos os Status</option>
+                        <option value="Aberto">Aberto / Em Andamento / Aberta</option>
+                        <option value="Concluído">Concluído / Finalizado / Concluída</option>
+                        <option value="Cancelada">Cancelada</option>
+                    </select>
+                </div>
+                <!-- Busca por texto livre -->
+                <div class="col-md-4">
+                    <input type="text" id="filtroBusca" class="form-control" placeholder="Pesquisar por cliente, título, equipamento..." onkeyup="filtrarTabela()">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-light border w-100 btn-modern" onclick="limparFiltros()">Limpar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Caixa de Exibição Dinâmica do Filtro e Contagem por Status -->
+        <div id="containerResumoFiltro" class="alert alert-primary d-flex flex-column flex-md-row justify-content-between align-items-md-center py-2 px-3 mb-3 gap-2" style="border-radius: 10px; font-size: 14px;">
+            <div>
+                <i class="bi bi-info-circle-fill me-1"></i> Filtro Ativo: <strong id="textoFiltroAtivo">Todos os Registros</strong>
+            </div>
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="text-dark fw-semibold">Total: <span id="qtdTotalFiltro" class="badge bg-primary">0</span></span>
+                <span class="text-success fw-semibold">Concluídos: <span id="qtdConcluidosFiltro" class="badge bg-success">0</span></span>
+                <span class="text-warning fw-semibold text-dark">Abertos: <span id="qtdAbertosFiltro" class="badge bg-warning text-dark">0</span></span>
+                <span class="text-danger fw-semibold">Cancelados: <span id="qtdCanceladosFiltro" class="badge bg-danger">0</span></span>
+            </div>
+        </div>
+
+        <!-- Tabela de Resultados -->
+        <div class="card table-card mb-5">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Identificação / Cliente / Título</th>
+                            <th>Detalhes / Equipamento</th>
+                            <th>Responsável / Técnico</th>
+                            <th>Status</th>
+                            <th>Data</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaResultados">
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Carregando dados do histórico...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let dadosGlobais = [];
+        let dadosFiltradosAtuais = [];
+        let usuarioLogado = localStorage.getItem('usuarioLogado') || 
+                            localStorage.getItem('usuario') || 
+                            localStorage.getItem('nomeUsuario') || 
+                            localStorage.getItem('nome') || 'Usuário';
+
+        document.getElementById('usuarioLogado').innerText = usuarioLogado;
+
+        function carregarDados() {
+            const request = indexedDB.open('BancoOSDB', 1);
+
+            request.onerror = function() {
+                console.error("Erro ao abrir banco de dados.");
+                renderizarTabela([]);
+            };
+
+            request.onsuccess = function(event) {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('ordens')) {
+                    processarDados([], []);
+                    return;
+                }
+
+                const transaction = db.transaction(['ordens'], 'readonly');
+                const store = transaction.objectStore('ordens');
+                const reqAll = store.getAll();
+
+                reqAll.onsuccess = function(e) {
+                    const listaOS = e.target.result || [];
+                    processarDados(listaOS, []);
+                };
+            };
+        }
+
+        async function processarDados(listaOS, planosAcaoExtras) {
+            dadosGlobais = [];
+
+            try {
+                const res = await fetch('/api/chamados');
+                const resChamados = await res.json();
+                (resChamados || []).forEach(c => {
+                    dadosGlobais.push({
+                        tipo: 'Chamado',
+                        identificacao: `Chamado #${c.id}`,
+                        loja: c.loja || '-',
+                        equipamento: c.equipamento || 'Geral',
+                        descricao: c.descricao || '-',
+                        titulo: `Chamado #${c.id} - ${c.equipamento || 'Geral'}`,
+                        detalhes: `Loja: ${c.loja || '-'} | Setor: ${c.setor || '-'} | ${c.descricao || ''}`,
+                        responsavel: c.responsavel || 'Não atribuído',
+                        status: c.status || 'Aberto',
+                        data: c.data_abertura ? new Date(c.data_abertura).toLocaleDateString('pt-BR') : '-'
+                    });
+                });
+            } catch (e) {}
+
+            listaOS.forEach(os => {
+                dadosGlobais.push({
+                    tipo: 'Ordem de Serviço',
+                    identificacao: `OS #${os.id}`,
+                    loja: os.cliente || '-',
+                    equipamento: os.equipamento || '-',
+                    descricao: os.defeito || '-',
+                    titulo: `OS #${os.id} - ${os.cliente}`,
+                    detalhes: `Equipamento: ${os.equipamento || '-'} | Defeito: ${os.defeito || '-'}`,
+                    responsavel: os.tecnico || 'Não atribuído',
+                    status: os.status,
+                    data: os.dataAbertura || '-'
+                });
+            });
+
+            const planosSalvos = localStorage.getItem('planosAcao');
+            if (planosSalvos) {
+                try {
+                    const listaPlanos = JSON.parse(planosSalvos);
+                    listaPlanos.forEach(p => {
+                        const totalTarefas = p.tarefas ? p.tarefas.length : 0;
+                        const tarefasConcluidas = p.tarefas ? p.tarefas.filter(t => t.concluido).length : 0;
+                        const statusPlano = (totalTarefas > 0 && tarefasConcluidas === totalTarefas) ? 'Concluído' : 'Aberto';
+
+                        dadosGlobais.push({
+                            tipo: 'Plano de Ação',
+                            identificacao: `Plano #${p.id || 'Geral'}`,
+                            loja: '-',
+                            equipamento: '-',
+                            descricao: p.objetivo || '-',
+                            titulo: p.titulo,
+                            detalhes: `Objetivo: ${p.objetivo || '-'} (Etapas: ${tarefasConcluidas}/${totalTarefas})`,
+                            responsavel: p.responsavelGeral || p.criadoPor || 'Sistema',
+                            status: statusPlano,
+                            data: p.dataCriacao || '-'
+                        });
+                    });
+                } catch(err) {}
+            }
+
+            atualizarCards(dadosGlobais);
+            renderizarTabela(dadosGlobais);
+        }
+
+        function atualizarCards(dados) {
+            document.getElementById('totalRegistros').innerText = dados.length;
+            
+            document.getElementById('totalConcluidos').innerText = dados.filter(d => {
+                const s = d.status.toLowerCase();
+                return s.includes('concluído') || s.includes('concluída') || s.includes('finalizado');
+            }).length;
+
+            document.getElementById('totalAbertos').innerText = dados.filter(d => {
+                const s = d.status.toLowerCase();
+                return s.includes('aberto') || s.includes('aber') || s.includes('andamento');
+            }).length;
+
+            document.getElementById('totalChamados').innerText = dados.filter(d => d.tipo === 'Chamado' || d.tipo === 'Ordem de Serviço').length;
+        }
+
+        function renderizarTabela(dadosFiltrados) {
+            dadosFiltradosAtuais = dadosFiltrados; 
+            const tbody = document.getElementById('tabelaResultados');
+            tbody.innerHTML = '';
+
+            const tipoFiltro = document.getElementById('filtroTipo').value;
+            const statusFiltro = document.getElementById('filtroStatus').value;
+            const textoBusca = document.getElementById('filtroBusca').value;
+
+            let descFiltro = tipoFiltro ? tipoFiltro : "Todos os Tipos";
+            if (statusFiltro) descFiltro += ` | Status: ${statusFiltro}`;
+            if (textoBusca) descFiltro += ` | Busca: "${textoBusca}"`;
+            document.getElementById('textoFiltroAtivo').innerText = descFiltro;
+
+            const qtdTotal = dadosFiltrados.length;
+            const qtdConcluidos = dadosFiltrados.filter(d => {
+                const s = d.status.toLowerCase();
+                return s.includes('concluído') || s.includes('concluída') || s.includes('finalizado');
+            }).length;
+            const qtdAbertos = dadosFiltrados.filter(d => {
+                const s = d.status.toLowerCase();
+                return s.includes('aberto') || s.includes('aber') || s.includes('andamento');
+            }).length;
+            const qtdCancelados = dadosFiltrados.filter(d => {
+                const s = d.status.toLowerCase();
+                return s.includes('cancelada');
+            }).length;
+
+            document.getElementById('qtdTotalFiltro').innerText = qtdTotal;
+            document.getElementById('qtdConcluidosFiltro').innerText = qtdConcluidos;
+            document.getElementById('qtdAbertosFiltro').innerText = qtdAbertos;
+            document.getElementById('qtdCanceladosFiltro').innerText = qtdCancelados;
+
+            if (dadosFiltrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Nenhum registro encontrado no histórico.</td></tr>`;
+                return;
+            }
+
+            dadosFiltrados.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                let badgeTipo = 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25';
+                if (item.tipo === 'Plano de Ação') {
+                    badgeTipo = 'bg-info bg-opacity-10 text-info border border-info border-opacity-25';
+                } else if (item.tipo === 'Ordem de Serviço') {
+                    badgeTipo = 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25';
+                }
+
+                const statusLower = item.status.toLowerCase();
+                let badgeStatus = 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25';
+                if (statusLower.includes('concluído') || statusLower.includes('concluída') || statusLower.includes('finalizado')) {
+                    badgeStatus = 'bg-success bg-opacity-10 text-success border border-success border-opacity-25';
+                } else if (statusLower.includes('cancelada')) {
+                    badgeStatus = 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25';
+                } else if (statusLower.includes('andamento')) {
+                    badgeStatus = 'bg-info bg-opacity-10 text-info border border-info border-opacity-25';
+                }
+
+                tr.innerHTML = `
+                    <td><span class="badge px-2 py-1 ${badgeTipo}">${item.tipo}</span></td>
+                    <td class="fw-semibold text-dark">${item.titulo}</td>
+                    <td class="text-muted small">${item.detalhes}</td>
+                    <td>${item.responsavel}</td>
+                    <td><span class="badge px-2 py-1 ${badgeStatus}">${item.status}</span></td>
+                    <td class="text-muted">${item.data}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filtrarTabela() {
+            const tipoFiltro = document.getElementById('filtroTipo').value;
+            const statusFiltro = document.getElementById('filtroStatus').value.toLowerCase();
+            const textoBusca = document.getElementById('filtroBusca').value.toLowerCase();
+
+            const filtrados = dadosGlobais.filter(item => {
+                const matchTipo = !tipoFiltro || item.tipo === tipoFiltro;
+                
+                const statusItem = item.status.toLowerCase();
+                let matchStatus = true;
+                if (statusFiltro) {
+                    if (statusFiltro === 'aberto') {
+                        matchStatus = statusItem.includes('aberto') || statusItem.includes('aber') || statusItem.includes('andamento');
+                    } else if (statusFiltro === 'concluído') {
+                        matchStatus = statusItem.includes('concluído') || statusItem.includes('concluída') || statusItem.includes('finalizado');
+                    } else {
+                        matchStatus = statusItem.includes(statusFiltro);
+                    }
+                }
+
+                const matchTexto = !textoBusca || 
+                                   item.titulo.toLowerCase().includes(textoBusca) || 
+                                   item.detalhes.toLowerCase().includes(textoBusca) || 
+                                   item.responsavel.toLowerCase().includes(textoBusca);
+
+                return matchTipo && matchStatus && matchTexto;
+            });
+
+            renderizarTabela(filtrados);
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroTipo').value = '';
+            document.getElementById('filtroStatus').value = '';
+            document.getElementById('filtroBusca').value = '';
+            renderizarTabela(dadosGlobais);
+        }
+
+        function exportarCSV() {
+            if (!dadosFiltradosAtuais || dadosFiltradosAtuais.length === 0) {
+                alert("Não há dados para exportar com o filtro atual.");
+                return;
+            }
+
+            let csvContent = "\uFEFF"; // BOM para garantir acentuação correta no Excel
+            // Colunas solicitadas separadas
+            csvContent += "Tipo;Identificação;Loja;Equipamento;Descrição;Responsável;Status;Data\n";
+
+            dadosFiltradosAtuais.forEach(item => {
+                const tipo = `"${(item.tipo || '').replace(/"/g, '""')}"`;
+                const identificacao = `"${(item.identificacao || '').replace(/"/g, '""')}"`;
+                const loja = `"${(item.loja || '').replace(/"/g, '""')}"`;
+                const equipamento = `"${(item.equipamento || '').replace(/"/g, '""')}"`;
+                const descricao = `"${(item.descricao || '').replace(/"/g, '""').replace(/[\r\n]+/g, ' ')}"`;
+                const responsavel = `"${(item.responsavel || '').replace(/"/g, '""')}"`;
+                const status = `"${(item.status || '').replace(/"/g, '""')}"`;
+                const data = `"${(item.data || '').replace(/"/g, '""')}"`;
+
+                csvContent += `${tipo};${identificacao};${loja};${equipamento};${descricao};${responsavel};${status};${data}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            
+            const dataAtual = new Date().toISOString().slice(0, 10);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `relatorio_servicos_${dataAtual}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.onload = carregarDados;
+    </script>
+</body>
+</html>

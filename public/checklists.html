@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestão de Checklists</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
+        header { display: flex; justify-content: space-between; align-items: center; background: #343a40; color: white; padding: 10px 20px; border-radius: 5px; }
+        .card { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 8px 15px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        input, select { padding: 8px; margin-right: 10px; margin-bottom: 10px; box-sizing: border-box; }
+        .checklist-box { border: 1px solid #ced4da; padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fff; }
+        .checklist-item { margin-bottom: 8px; font-size: 14px; }
+        .badge-conforme { color: #155724; background-color: #d4edda; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .badge-nao-conforme { color: #721c24; background-color: #f8d7da; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .badge-pendente { color: #856404; background-color: #fff3cd; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+        .autor-info { font-size: 13px; color: #495057; margin-bottom: 4px; }
+        .filtro-container { background: #e9ecef; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+        .btn-padrao-wrapper { display: inline-flex; align-items: center; background-color: #6c757d; border-radius: 4px; margin-right: 5px; margin-bottom: 8px; overflow: hidden; }
+        .btn-padrao { background-color: #6c757d; color: white; font-size: 12px; padding: 5px 10px; border: none; cursor: pointer; }
+        .btn-padrao:hover { background-color: #5a6268; }
+        .btn-remover-modelo { background-color: #dc3545; color: white; font-size: 11px; padding: 5px 6px; border: none; cursor: pointer; }
+        .btn-remover-modelo:hover { background-color: #bd2130; }
+        .obs-texto { font-style: italic; color: #6c757d; font-size: 13px; margin-left: 20px; display: block; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>Módulo de Checklists</h2>
+        <div>
+            <span id="usuarioLogadoDisplay" style="margin-right: 15px; font-weight: bold; font-size: 14px;"></span>
+        </div>
+    </header>
+
+    <!-- Criar Novo Checklist -->
+    <div class="card" id="secaoCriarChecklist">
+        <h3>Criar Novo Checklist</h3>
+        
+        <div style="margin-bottom: 12px;">
+            <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px;">Modelos Padrão (Clique para carregar):</label>
+            <div id="containerBotoesModelos"></div>
+        </div>
+
+        <form id="formChecklist">
+            <input type="text" id="tituloChecklist" placeholder="Título do Checklist (ex: Manutenção Semanal)" required style="width: 350px;"><br>
+            
+            <div style="margin-bottom: 10px;">
+                <label style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 4px;">Responsável:</label>
+                <input type="text" id="responsavelChecklist" placeholder="Nome do Responsável (ex: João Silva)" required style="width: 350px;">
+            </div>
+
+            <div style="margin-bottom: 10px;">
+                <label style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 4px;">Gerar checklist para quantos dias?</label>
+                <select id="qtdDiasChecklist" style="width: 350px;">
+                    <option value="1">Apenas hoje (1 dia)</option>
+                    <option value="7">Próximos 7 dias (1 semana)</option>
+                    <option value="15">Próximos 15 dias</option>
+                    <option value="30">Próximos 30 dias (1 mês)</option>
+                </select>
+            </div>
+
+            <div id="itensChecklistContainer">
+                <input type="text" class="item-input" placeholder="Item 1 do Checklist" required style="width: 300px;"><br>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <button type="button" onclick="adicionarCampoItem()" style="background-color: #6c757d;">+ Adicionar Mais um Item</button>
+                <button type="button" onclick="salvarComoModeloPadrao()" style="background-color: #28a745; margin-left: 10px;">💾 Salvar atual como Modelo Padrão</button>
+            </div>
+
+            <button type="submit" style="background-color: #17a2b8; font-size: 15px; font-weight: bold;">Salvar Checklist(s)</button>
+        </form>
+    </div>
+
+    <!-- Lista de Checklists Ativos com Filtros -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0;">Checklists Cadastrados</h3>
+            <button type="button" onclick="irParaCriacao()" style="background-color: #28a745; font-weight: bold;">+ Criar Novo Checklist</button>
+        </div>
+        
+        <div class="filtro-container">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                <strong>Filtros:</strong>
+                <input type="text" id="filtroTexto" placeholder="Filtrar por Título/Tipo..." oninput="filtrarChecklists()" style="width: 180px; margin-bottom: 0;">
+                <input type="text" id="filtroResponsavel" placeholder="Filtrar por Responsável..." oninput="filtrarChecklists()" style="width: 150px; margin-bottom: 0;">
+                <input type="text" id="filtroUsuario" placeholder="Filtrar por Usuário (Criador)..." oninput="filtrarChecklists()" style="width: 160px; margin-bottom: 0;">
+                <div style="display: inline-flex; align-items: center; gap: 5px;">
+                    <span style="font-size: 13px; color: #495057;">De:</span>
+                    <input type="date" id="filtroDataInicio" onchange="filtrarChecklists()" style="width: 135px; margin-bottom: 0;">
+                    <span style="font-size: 13px; color: #495057;">Até:</span>
+                    <input type="date" id="filtroDataFim" onchange="filtrarChecklists()" style="width: 135px; margin-bottom: 0;">
+                </div>
+            </div>
+            <button type="button" onclick="limparFiltros()" style="background-color: #6c757d; padding: 7px 12px; font-size: 13px;">Limpar Filtros</button>
+        </div>
+
+        <div id="listaChecklists"></div>
+    </div>
+
+    <script>
+        let usuarioLogado = localStorage.getItem('usuarioLogado') || 
+                            localStorage.getItem('usuario') || 
+                            localStorage.getItem('nomeUsuario') || 
+                            localStorage.getItem('nome');
+
+        if (!usuarioLogado || usuarioLogado.trim() === "") {
+            usuarioLogado = "Administrador";
+        }
+
+        // Atualiza a lista automaticamente mantendo os filtros ativos quando a aba ganha foco
+        window.addEventListener('focus', () => {
+            carregarChecklists();
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const displayUser = document.getElementById('usuarioLogadoDisplay');
+            if (displayUser) {
+                displayUser.innerText = `👤 Logado como: ${usuarioLogado}`;
+            }
+            carregarModelosNaTela();
+        });
+
+        let checklistsGlobais = [];
+
+        const modelosIniciais = [
+            { titulo: 'Manutenção Preventiva', itens: ['Verificar equipamentos', 'Limpar filtros', 'Testar alarmes'] },
+            { titulo: 'Tecnologia', itens: ['Conferir Servidor', 'Conferir Internet', 'Conferir impressoras PDV', 'Conferir Pdv', 'Conferir Impressoras'] },
+            { titulo: 'Abertura de Loja', itens: ['Desligar alarme', 'Ligar luzes e vitrines', 'Verificar caixa troco', 'Organizar balcão'] },
+            { titulo: 'Fechamento de Loja', itens: ['Conferir valores em dinheiro', 'Emitir relatório de vendas', 'Baixar portas e travar', 'Ligar alarme'] }
+        ];
+
+        function obterModelosSalvos() {
+            const salvos = localStorage.getItem('modelosChecklistPersonalizados');
+            if (!salvos) {
+                localStorage.setItem('modelosChecklistPersonalizados', JSON.stringify(modelosIniciais));
+                return modelosIniciais;
+            }
+            try {
+                let modelos = JSON.parse(salvos);
+                modelosIniciais.forEach(mi => {
+                    if (!modelos.some(m => m.titulo.toLowerCase() === mi.titulo.toLowerCase())) {
+                        modelos.unshift(mi);
+                    }
+                });
+                return modelos;
+            } catch (e) {
+                return modelosIniciais;
+            }
+        }
+
+        function carregarModelosNaTela() {
+            const container = document.getElementById('containerBotoesModelos');
+            container.innerHTML = '';
+            const modelos = obterModelosSalvos();
+
+            modelos.forEach((modelo) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'btn-padrao-wrapper';
+
+                const btnCarregar = document.createElement('button');
+                btnCarregar.type = 'button';
+                btnCarregar.className = 'btn-padrao';
+                btnCarregar.innerText = `📋 ${modelo.titulo}`;
+                btnCarregar.onclick = () => carregarModelo(modelo.titulo, modelo.itens);
+
+                wrapper.appendChild(btnCarregar);
+
+                const ehPrincipal = modelosIniciais.some(mi => mi.titulo.toLowerCase() === modelo.titulo.toLowerCase());
+                if (!ehPrincipal) {
+                    const btnRemover = document.createElement('button');
+                    btnRemover.type = 'button';
+                    btnRemover.className = 'btn-remover-modelo';
+                    btnRemover.innerText = '✕';
+                    btnRemover.title = 'Excluir este modelo personalizado';
+                    // Passamos o título exato em vez do índice do array para evitar apagar o modelo errado
+                    btnRemover.onclick = () => removerModeloPorTitulo(modelo.titulo);
+                    wrapper.appendChild(btnRemover);
+                }
+
+                container.appendChild(wrapper);
+            });
+        }
+
+        function salvarComoModeloPadrao() {
+            const titulo = document.getElementById('tituloChecklist').value.trim();
+            const inputs = document.querySelectorAll('.item-input');
+            const itens = Array.from(inputs).map(input => input.value.trim()).filter(val => val !== '');
+
+            if (!titulo) {
+                alert('Preencha o título do checklist antes de salvá-lo como modelo.');
+                document.getElementById('tituloChecklist').focus();
+                return;
+            }
+
+            if (itens.length === 0) {
+                alert('Adicione pelo menos um item para salvar o modelo.');
+                return;
+            }
+
+            let modelos = obterModelosSalvos();
+            const indexExistente = modelos.findIndex(m => m.titulo.toLowerCase() === titulo.toLowerCase());
+
+            if (indexExistente >= 0) {
+                modelos[indexExistente].itens = itens;
+                alert(`Modelo "${titulo}" foi atualizado com sucesso com os novos itens!`);
+            } else {
+                modelos.push({ titulo, itens });
+                alert(`Novo modelo "${titulo}" salvo com sucesso nos botões padrão!`);
+            }
+
+            localStorage.setItem('modelosChecklistPersonalizados', JSON.stringify(modelos));
+            carregarModelosNaTela();
+        }
+
+        function removerModeloPorTitulo(tituloModelo) {
+            if (!confirm(`Deseja excluir o modelo padrão "${tituloModelo}"?`)) return;
+            let modelos = obterModelosSalvos();
+            modelos = modelos.filter(m => m.titulo.toLowerCase() !== tituloModelo.toLowerCase());
+            localStorage.setItem('modelosChecklistPersonalizados', JSON.stringify(modelos));
+            carregarModelosNaTela();
+        }
+
+        function irParaCriacao() {
+            const secaoCriar = document.getElementById('secaoCriarChecklist');
+            secaoCriar.scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('tituloChecklist').focus();
+        }
+
+        function adicionarCampoItem() {
+            const container = document.getElementById('itensChecklistContainer');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'item-input';
+            input.placeholder = 'Outro item do checklist';
+            input.required = true;
+            input.style.width = '300px';
+
+            container.appendChild(input);
+            container.appendChild(document.createElement('br'));
+        }
+
+        function carregarModelo(tituloPadrao, itensPadrao) {
+            document.getElementById('tituloChecklist').value = tituloPadrao;
+            const container = document.getElementById('itensChecklistContainer');
+            container.innerHTML = '';
+
+            itensPadrao.forEach((itemTexto) => {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'item-input';
+                input.value = itemTexto;
+                input.required = true;
+                input.style.width = '300px';
+
+                container.appendChild(input);
+                container.appendChild(document.createElement('br'));
+            });
+        }
+
+        document.getElementById('formChecklist').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const titulo = document.getElementById('tituloChecklist').value;
+            const responsavel = document.getElementById('responsavelChecklist').value;
+            const dias = document.getElementById('qtdDiasChecklist').value;
+            const inputs = document.querySelectorAll('.item-input');
+            const itens = Array.from(inputs).map(input => input.value).filter(val => val.trim() !== '');
+
+            if (itens.length === 0) {
+                alert('Adicione pelo menos um item ao checklist.');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/checklists', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        titulo, 
+                        responsavel,
+                        itens, 
+                        dias, 
+                        usuario: usuarioLogado 
+                    })
+                });
+
+                const resultado = await res.json();
+                if (res.ok) {
+                    alert(resultado.mensagem || 'Checklist(s) criado(s) com sucesso!');
+                    document.getElementById('formChecklist').reset();
+                    document.getElementById('itensChecklistContainer').innerHTML = '<input type="text" class="item-input" placeholder="Item 1 do Checklist" required style="width: 300px;"><br>';
+                    carregarChecklists();
+                } else {
+                    alert('Erro ao salvar o checklist.');
+                }
+            } catch (err) {
+                console.error("Erro ao enviar formulário:", err);
+            }
+        });
+
+        async function carregarChecklists() {
+            try {
+                const res = await fetch('/api/checklists');
+                checklistsGlobais = await res.json();
+                
+                checklistsGlobais.sort((a, b) => {
+                    const extrairData = (titulo) => {
+                        const match = titulo.match(/\((\d{2}\/\d{2}\/\d{4})\)/);
+                        if (!match) return 0;
+                        const [dia, mes, ano] = match[1].split('/');
+                        return new Date(`${ano}-${mes}-${dia}`).getTime();
+                    };
+                    return extrairData(a.titulo) - extrairData(b.titulo);
+                });
+
+                // Re-aplica os filtros atuais caso o usuário tenha digitado algo antes de atualizar
+                filtrarChecklists();
+            } catch (err) {
+                console.error("Erro ao carregar checklists:", err);
+                const container = document.getElementById('listaChecklists');
+                if (container) container.innerHTML = '<p style="color: red;">Erro ao carregar os dados do servidor.</p>';
+            }
+        }
+
+        function renderizarChecklists(lista) {
+            const container = document.getElementById('listaChecklists');
+            container.innerHTML = '';
+
+            if (!lista || lista.length === 0) {
+                container.innerHTML = '<p>Nenhum checklist encontrado com esses filtros.</p>';
+                return;
+            }
+
+            lista.forEach(cl => {
+                const box = document.createElement('div');
+                box.className = 'checklist-box';
+                
+                let itensHtml = (cl.itens || []).map(item => {
+                    let badgeStatus = '<span class="badge-pendente">Pendente</span>';
+                    if (item.status === 'conforme') {
+                        badgeStatus = '<span class="badge-conforme">Conforme</span>';
+                    } else if (item.status === 'nao_conforme') {
+                        badgeStatus = '<span class="badge-nao-conforme">Não Conforme</span>';
+                    }
+
+                    let fotoInfo = item.foto ? '<span style="color: blue; font-size: 12px; margin-left: 5px;">[📸 Foto]</span>' : '';
+                    let obsHtml = item.observacao ? `<span class="obs-texto">💬 Obs: ${item.observacao}</span>` : '';
+
+                    return `
+                        <div class="checklist-item">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                ${badgeStatus}
+                                <span>${item.descricao}</span>
+                                ${fotoInfo}
+                            </div>
+                            ${obsHtml}
+                        </div>
+                    `;
+                }).join('');
+
+                const criador = cl.criado_por ? cl.criado_por : 'Não identificado';
+                const responsavel = cl.responsavel ? cl.responsavel : 'Não definido';
+                const finalizador = cl.concluido_por ? cl.concluido_por : 'Não concluído / Pendente';
+
+                box.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="margin: 0 0 5px 0; cursor: pointer; color: #007bff;" onclick="window.location.href='checklist-detalhe.html?id=${cl.id}'">📋 ${cl.titulo} (Clique para abrir/executar)</h4>
+                        <button onclick="deletarChecklist(${cl.id})" style="background-color: #dc3545; padding: 3px 8px; font-size: 12px;">Excluir</button>
+                    </div>
+                    <div class="autor-info">👷 <strong>Responsável:</strong> ${responsavel}</div>
+                    <div class="autor-info">✍️ <strong>Criado por:</strong> ${criador}</div>
+                    <div class="autor-info">👤 <strong>Finalizado por:</strong> ${finalizador}</div>
+                    <hr style="border: 0; border-top: 1px solid #dee2e6; margin: 8px 0;">
+                    ${itensHtml}
+                `;
+                container.appendChild(box);
+            });
+        }
+
+        function filtrarChecklists() {
+            const textoFiltro = document.getElementById('filtroTexto').value.toLowerCase();
+            const responsavelFiltro = document.getElementById('filtroResponsavel').value.toLowerCase();
+            const usuarioFiltro = document.getElementById('filtroUsuario').value.toLowerCase();
+            const dataInicioInput = document.getElementById('filtroDataInicio').value;
+            const dataFimInput = document.getElementById('filtroDataFim').value;
+
+            const dataInicioTime = dataInicioInput ? new Date(dataInicioInput + 'T00:00:00').getTime() : null;
+            const dataFimTime = dataFimInput ? new Date(dataFimInput + 'T23:59:59').getTime() : null;
+
+            const filtrados = checklistsGlobais.filter(cl => {
+                const titulo = (cl.titulo || '').toLowerCase();
+                const responsavel = (cl.responsavel || '').toLowerCase();
+                const criador = (cl.criado_por || '').toLowerCase();
+
+                const atendeTexto = titulo.includes(textoFiltro);
+                const atendeResponsavel = responsavel.includes(responsavelFiltro);
+                const atendeUsuario = criador.includes(usuarioFiltro);
+
+                let atendeData = true;
+                if (dataInicioTime || dataFimTime) {
+                    const match = cl.titulo.match(/\((\d{2}\/\d{2}\/\d{4})\)/);
+                    if (match) {
+                        const [dia, mes, ano] = match[1].split('/');
+                        const dataChecklistTime = new Date(`${ano}-${mes}-${dia}T00:00:00`).getTime();
+
+                        if (dataInicioTime && dataChecklistTime < dataInicioTime) atendeData = false;
+                        if (dataFimTime && dataChecklistTime > dataFimTime) atendeData = false;
+                    } else {
+                        atendeData = false;
+                    }
+                }
+
+                return atendeTexto && atendeResponsavel && atendeUsuario && atendeData;
+            });
+
+            renderizarChecklists(filtrados);
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroTexto').value = '';
+            document.getElementById('filtroResponsavel').value = '';
+            document.getElementById('filtroUsuario').value = '';
+            document.getElementById('filtroDataInicio').value = '';
+            document.getElementById('filtroDataFim').value = '';
+            renderizarChecklists(checklistsGlobais);
+        }
+
+        async function deletarChecklist(id) {
+            if (!confirm('Deseja realmente excluir este checklist?')) return;
+            try {
+                await fetch(`/api/checklists/${id}`, { method: 'DELETE' });
+                carregarChecklists();
+            } catch (err) {
+                console.error("Erro ao deletar:", err);
+            }
+        }
+
+        carregarChecklists();
+    </script>
+</body>
+</html>

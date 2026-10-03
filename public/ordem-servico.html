@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestão de Ordens de Serviço</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
+        header { display: flex; justify-content: space-between; align-items: center; background: #343a40; color: white; padding: 10px 20px; border-radius: 5px; }
+        .card { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 8px 15px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        input, select, textarea { padding: 8px; margin-right: 10px; margin-bottom: 12px; box-sizing: border-box; width: 100%; max-width: 400px; border: 1px solid #ced4da; border-radius: 4px; }
+        textarea { resize: vertical; height: 80px; }
+        label { font-size: 14px; font-weight: bold; display: block; margin-bottom: 4px; color: #495057; }
+        .os-box { border: 1px solid #ced4da; padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fff; }
+        .os-info { font-size: 14px; color: #495057; margin-bottom: 4px; }
+        .filtro-container { background: #e9ecef; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; }
+        .status-aberta { background-color: #ffc107; color: #212529; }
+        .status-andamento { background-color: #17a2b8; }
+        .status-concluida { background-color: #28a745; }
+        .status-cancelada { background-color: #dc3545; }
+
+        /* Estilo para ocultar a tela normal ao imprimir */
+        @media print {
+            body { background: white; margin: 0; }
+            header, .card:not(#print-area), .filtro-container, button, select, textarea, input { display: none !important; }
+            .os-print-layout { display: block !important; }
+        }
+        .os-print-layout { display: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>Módulo de Ordens de Serviço (OS)</h2>
+        <div>
+            <span id="usuarioLogadoDisplay" style="margin-right: 15px; font-weight: bold; font-size: 14px;"></span>
+        </div>
+    </header>
+
+    <!-- Formulário de Abertura de OS -->
+    <div class="card" id="secaoCriarOS">
+        <h3>Abrir Nova Ordem de Serviço</h3>
+        
+        <form id="formOS">
+            <div>
+                <label>Nome do Cliente / Empresa:</label>
+                <input type="text" id="clienteOS" placeholder="Ex: Supermercado Central" required>
+            </div>
+
+            <div>
+                <label>Equipamento / Dispositivo:</label>
+                <input type="text" id="equipamentoOS" placeholder="Ex: Computador Caixa 01 / Impressora Térmica" required>
+            </div>
+
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; max-width: 410px;">
+                <div style="flex: 1; min-width: 180px;">
+                    <label>Prioridade:</label>
+                    <select id="prioridadeOS" style="width: 100%;">
+                        <option value="Baixa">Baixa</option>
+                        <option value="Média" selected>Média</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Urgente">Urgente</option>
+                    </select>
+                </div>
+                <div style="flex: 1; min-width: 180px;">
+                    <label>Técnico Responsável:</label>
+                    <input type="text" id="tecnicoOS" placeholder="Nome do técnico" style="width: 100%;">
+                </div>
+            </div>
+
+            <div>
+                <label>Defeito / Problema Relatado:</label>
+                <textarea id="defeitoOS" placeholder="Descreva detalhadamente o problema..." required></textarea>
+            </div>
+
+            <button type="submit" style="background-color: #28a745; font-size: 15px; font-weight: bold; padding: 10px 20px;">Abrir Ordem de Serviço</button>
+        </form>
+    </div>
+
+    <!-- Listagem de Ordens de Serviço -->
+    <div class="card" id="print-area">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+            <h3 style="margin: 0;">Ordens de Serviço Cadastradas</h3>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" onclick="exportarBackup()" style="background-color: #17a2b8; font-size: 13px;">💾 Baixar Backup</button>
+                <button type="button" onclick="document.getElementById('inputImportar').click()" style="background-color: #ffc107; color: #212529; font-size: 13px;">📂 Carregar Backup</button>
+                <input type="file" id="inputImportar" accept=".json" style="display: none;" onchange="importarBackup(event)">
+                <button type="button" onclick="irParaCriacao()" style="background-color: #28a745; font-weight: bold;">+ Nova OS</button>
+            </div>
+        </div>
+        
+        <!-- Filtros -->
+        <div class="filtro-container">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                <strong>Filtros:</strong>
+                <input type="text" id="filtroCliente" placeholder="Filtrar por Cliente..." oninput="filtrarOS()" style="width: 180px; margin-bottom: 0;">
+                <select id="filtroStatus" onchange="filtrarOS()" style="width: 150px; margin-bottom: 0;">
+                    <option value="">Todos os Status</option>
+                    <option value="Aberta">Aberta</option>
+                    <option value="Em Andamento">Em Andamento</option>
+                    <option value="Concluída">Concluída</option>
+                    <option value="Cancelada">Cancelada</option>
+                </select>
+            </div>
+            <button type="button" onclick="limparFiltros()" style="background-color: #6c757d; padding: 7px 12px; font-size: 13px;">Limpar Filtros</button>
+        </div>
+
+        <div id="listaOS">
+            <!-- Carregado via JS -->
+        </div>
+    </div>
+
+    <!-- Container Oculto para Impressão Dinâmica -->
+    <div id="areaImpressao" class="os-print-layout"></div>
+
+    <script>
+        let usuarioLogado = localStorage.getItem('usuarioLogado') || 
+                            localStorage.getItem('usuario') || 
+                            localStorage.getItem('nomeUsuario') || 
+                            localStorage.getItem('nome') || 'Administrador';
+
+        let db;
+        const request = indexedDB.open('BancoOSDB', 1);
+
+        request.onerror = function() { console.error("Erro ao abrir IndexedDB"); };
+        request.onsuccess = function(event) { db = event.target.result; carregarOS(); };
+        request.onupgradeneeded = function(event) {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains('ordens')) db.createObjectStore('ordens', { keyPath: 'id' });
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const displayUser = document.getElementById('usuarioLogadoDisplay');
+            if (displayUser) displayUser.innerText = `👤 Logado como: ${usuarioLogado}`;
+            document.getElementById('tecnicoOS').value = usuarioLogado;
+        });
+
+        let ordensGlobais = [];
+
+        function irParaCriacao() {
+            document.getElementById('secaoCriarOS').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('clienteOS').focus();
+        }
+
+        document.getElementById('formOS').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const novaOS = {
+                id: Date.now(),
+                cliente: document.getElementById('clienteOS').value.trim(),
+                equipamento: document.getElementById('equipamentoOS').value.trim(),
+                prioridade: document.getElementById('prioridadeOS').value,
+                tecnico: document.getElementById('tecnicoOS').value.trim() || 'Não atribuído',
+                defeito: document.getElementById('defeitoOS').value.trim(),
+                relatorioTecnico: '',
+                status: 'Aberta',
+                aberturaPor: usuarioLogado,
+                dataAbertura: new Date().toLocaleString('pt-BR')
+            };
+
+            const transaction = db.transaction(['ordens'], 'readwrite');
+            const store = transaction.objectStore('ordens');
+            store.add(novaOS);
+
+            transaction.oncomplete = function() {
+                alert('Ordem de Serviço salva com sucesso!');
+                document.getElementById('formOS').reset();
+                document.getElementById('tecnicoOS').value = usuarioLogado;
+                carregarOS();
+            };
+        });
+
+        function carregarOS() {
+            if (!db) return;
+            const transaction = db.transaction(['ordens'], 'readonly');
+            const store = transaction.objectStore('ordens');
+            const requestAll = store.getAll();
+
+            requestAll.onsuccess = function(event) {
+                ordensGlobais = event.target.result.reverse();
+                renderizarOS(ordensGlobais);
+            };
+        }
+
+        function renderizarOS(lista) {
+            const container = document.getElementById('listaOS');
+            container.innerHTML = '';
+
+            if (!lista || lista.length === 0) {
+                container.innerHTML = '<p>Nenhuma Ordem de Serviço encontrada.</p>';
+                return;
+            }
+
+            lista.forEach(os => {
+                const box = document.createElement('div');
+                box.className = 'os-box';
+
+                let classeStatus = 'status-aberta';
+                if (os.status === 'Em Andamento') classeStatus = 'status-andamento';
+                if (os.status === 'Concluída') classeStatus = 'status-concluida';
+                if (os.status === 'Cancelada') classeStatus = 'status-cancelada';
+
+                box.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 5px;">
+                        <h4 style="margin: 0; color: #007bff;">🔧 OS #${os.id} - ${os.cliente}</h4>
+                        <div>
+                            <select onchange="alterarStatus(${os.id}, this.value)" style="padding: 4px; font-size: 12px; margin-bottom: 0; width: auto; display: inline-block;">
+                                <option value="Aberta" ${os.status === 'Aberta' ? 'selected' : ''}>Aberta</option>
+                                <option value="Em Andamento" ${os.status === 'Em Andamento' ? 'selected' : ''}>Em Andamento</option>
+                                <option value="Concluída" ${os.status === 'Concluída' ? 'selected' : ''}>Concluída</option>
+                                <option value="Cancelada" ${os.status === 'Cancelada' ? 'selected' : ''}>Cancelada</option>
+                            </select>
+                            <button onclick="cancelarServico(${os.id})" style="background-color: #dc3545; padding: 4px 8px; font-size: 12px; margin-left: 3px;" title="Desistência / Cancelamento">❌ Cancelar</button>
+                            <button onclick="imprimirTermica(${os.id})" style="background-color: #17a2b8; padding: 4px 8px; font-size: 12px; margin-left: 3px;" title="Impressão Térmica Reduzida">🧾 Térmica</button>
+                            <button onclick="imprimirA4(${os.id})" style="background-color: #6c757d; padding: 4px 8px; font-size: 12px; margin-left: 3px;" title="Impressão Padrão A4">🖨️ A4</button>
+                            <button onclick="deletarOS(${os.id})" style="background-color: #343a40; padding: 4px 8px; font-size: 12px; margin-left: 3px;">Excluir</button>
+                        </div>
+                    </div>
+                    <div class="os-info">💻 <strong>Equipamento:</strong> ${os.equipamento}</div>
+                    <div class="os-info">⚠️ <strong>Prioridade:</strong> ${os.prioridade} | 👷 <strong>Técnico:</strong> ${os.tecnico}</div>
+                    <div class="os-info">📋 <strong>Defeito Relatado:</strong> ${os.defeito}</div>
+                    
+                    <div style="margin-top: 10px; background: #f1f3f5; padding: 10px; border-radius: 4px;">
+                        <label for="relatorio_${os.id}" style="font-size: 13px; color: #333; margin-bottom: 2px;">🛠️ O que foi feito / Laudo Técnico ou Motivo de Cancelamento:</label>
+                        <textarea id="relatorio_${os.id}" placeholder="Descreva os procedimentos realizados..." style="max-width: 100%; margin-bottom: 6px; height: 60px;">${os.relatorioTecnico || ''}</textarea>
+                        <button type="button" onclick="salvarRelatorio(${os.id})" style="background-color: #007bff; font-size: 12px; padding: 5px 12px;">Salvar Ação</button>
+                    </div>
+
+                    <div class="os-info" style="margin-top: 8px; font-size: 12px; color: #6c757d;">
+                        📅 Aberta em ${os.dataAbertura} por ${os.aberturaPor} 
+                        | Status atual: <span class="badge ${classeStatus}">${os.status}</span>
+                    </div>
+                `;
+                container.appendChild(box);
+            });
+        }
+
+        function alterarStatus(id, novoStatus) {
+            const transaction = db.transaction(['ordens'], 'readwrite');
+            const store = transaction.objectStore('ordens');
+            const req = store.get(id);
+            req.onsuccess = function(e) {
+                let os = e.target.result;
+                if (os) { os.status = novoStatus; store.put(os); transaction.oncomplete = () => carregarOS(); }
+            };
+        }
+
+        function cancelarServico(id) {
+            const motivo = prompt("Informe o motivo da desistência/cancelamento do serviço:");
+            if (motivo === null) return; // Usuário cancelou a janela prompt
+
+            const transaction = db.transaction(['ordens'], 'readwrite');
+            const store = transaction.objectStore('ordens');
+            const req = store.get(id);
+
+            req.onsuccess = function(e) {
+                let os = e.target.result;
+                if (os) {
+                    os.status = 'Cancelada';
+                    const justificativa = `[SERVIÇO CANCELADO/DESISTÊNCIA] Motivo: ${motivo.trim() || 'Não informado'}`;
+                    os.relatorioTecnico = os.relatorioTecnico ? `${os.relatorioTecnico}\n\n${justificativa}` : justificativa;
+                    
+                    store.put(os);
+                    transaction.oncomplete = () => {
+                        alert('Ordem cancelada e motivo registrado com sucesso!');
+                        carregarOS();
+                    };
+                }
+            };
+        }
+
+        function salvarRelatorio(id) {
+            const novoRelatorio = document.getElementById(`relatorio_${id}`).value;
+            const transaction = db.transaction(['ordens'], 'readwrite');
+            const store = transaction.objectStore('ordens');
+            const req = store.get(id);
+            req.onsuccess = function(e) {
+                let os = e.target.result;
+                if (os) {
+                    os.relatorioTecnico = novoRelatorio;
+                    store.put(os);
+                    transaction.oncomplete = () => { alert('Relatório salvo com sucesso!'); carregarOS(); };
+                }
+            };
+        }
+
+        // Layout 1: Térmica (Menos detalhes, formato bobina)
+        function imprimirTermica(id) {
+            const os = ordensGlobais.find(item => item.id === id);
+            if (!os) return;
+
+            const areaPrint = document.getElementById('areaImpressao');
+            areaPrint.innerHTML = `
+                <div style="font-family: 'Courier New', Courier, monospace; width: 280px; padding: 5px; font-size: 12px; color: #000; line-height: 1.2;">
+                    <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 8px;">
+                        <strong>ORDEM DE SERVIÇO</strong><br>
+                        <strong>OS #${os.id}</strong><br>
+                        <span>${os.dataAbertura}</span>
+                    </div>
+                    <div style="margin-bottom: 6px;">
+                        <strong>Cliente:</strong> ${os.cliente}<br>
+                        <strong>Equipamento:</strong> ${os.equipamento}<br>
+                        <strong>Técnico:</strong> ${os.tecnico}<br>
+                        <strong>Status:</strong> ${os.status}
+                    </div>
+                    <div style="border-top: 1px dashed #000; padding-top: 5px; margin-bottom: 6px;">
+                        <strong>Defeito:</strong><br>
+                        ${os.defeito || 'N/D'}
+                    </div>
+                    <div style="border-top: 1px dashed #000; padding-top: 5px; margin-bottom: 15px;">
+                        <strong>Laudo / Ação / Cancelamento:</strong><br>
+                        ${os.relatorioTecnico || 'Em andamento'}
+                    </div>
+                    <div style="text-align: center; border-top: 1px dashed #000; padding-top: 15px;">
+                        _________________________________<br>
+                        Assinatura do Cliente
+                    </div>
+                </div>
+            `;
+            window.print();
+        }
+
+        // Layout 2: Padrão A4 Completo
+        function imprimirA4(id) {
+            const os = ordensGlobais.find(item => item.id === id);
+            if (!os) return;
+
+            const areaPrint = document.getElementById('areaImpressao');
+            areaPrint.innerHTML = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; border: 2px solid #333; max-width: 800px; margin: auto;">
+                    <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px;">
+                        <h2 style="margin: 0;">ORDEM DE SERVIÇO - OS #${os.id}</h2>
+                        <p style="margin: 5px 0 0 0; font-size: 13px;">Data de Abertura: ${os.dataAbertura} | Status: <strong>${os.status}</strong></p>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <h3 style="background: #eee; padding: 5px; margin: 0 0 8px 0; font-size: 14px;">1. Dados do Cliente e Equipamento</h3>
+                        <p style="margin: 4px 0;"><strong>Cliente / Empresa:</strong> ${os.cliente}</p>
+                        <p style="margin: 4px 0;"><strong>Equipamento / Dispositivo:</strong> ${os.equipamento}</p>
+                        <p style="margin: 4px 0;"><strong>Prioridade:</strong> ${os.prioridade} | <strong>Técnico Responsável:</strong> ${os.tecnico}</p>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <h3 style="background: #eee; padding: 5px; margin: 0 0 8px 0; font-size: 14px;">2. Defeito / Problema Relatado</h3>
+                        <div style="border: 1px solid #ccc; padding: 8px; min-height: 40px; background: #fafafa;">${os.defeito || 'Nenhum detalhe informado.'}</div>
+                    </div>
+
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="background: #eee; padding: 5px; margin: 0 0 8px 0; font-size: 14px;">3. Laudo Técnico / Motivo de Cancelamento</h3>
+                        <div style="border: 1px solid #ccc; padding: 8px; min-height: 70px; background: #fafafa;">${os.relatorioTecnico || 'Serviço em andamento / Sem laudo registrado.'}</div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 50px; text-align: center;">
+                        <div style="width: 45%;">
+                            <div style="border-top: 1px solid #000; padding-top: 5px;">Assinatura do Técnico</div>
+                        </div>
+                        <div style="width: 45%;">
+                            <div style="border-top: 1px solid #000; padding-top: 5px;">Assinatura do Cliente / Responsável</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            window.print();
+        }
+
+        function deletarOS(id) {
+            if (!confirm('Deseja realmente excluir permanentemente esta OS do banco de dados?')) return;
+            const transaction = db.transaction(['ordens'], 'readwrite');
+            const store = transaction.objectStore('ordens');
+            store.delete(id);
+            transaction.oncomplete = () => carregarOS();
+        }
+
+        function filtrarOS() {
+            const clienteFiltro = document.getElementById('filtroCliente').value.toLowerCase();
+            const statusFiltro = document.getElementById('filtroStatus').value;
+            const filtrados = ordensGlobais.filter(os => {
+                return (os.cliente || '').toLowerCase().includes(clienteFiltro) && (statusFiltro ? os.status === statusFiltro : true);
+            });
+            renderizarOS(filtrados);
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroCliente').value = '';
+            document.getElementById('filtroStatus').value = '';
+            renderizarOS(ordensGlobais);
+        }
+
+        function exportarBackup() {
+            const transaction = db.transaction(['ordens'], 'readonly');
+            const store = transaction.objectStore('ordens');
+            const req = store.getAll();
+            req.onsuccess = function(e) {
+                const dados = e.target.result;
+                if (!dados.length) { alert('Sem dados para exportar.'); return; }
+                const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `backup_os_${new Date().toISOString().slice(0,10)}.json`;
+                a.click(); URL.revokeObjectURL(url);
+            };
+        }
+
+        function importarBackup(event) {
+            const arquivo = event.target.files[0];
+            if (!arquivo) return;
+            const leitor = new FileReader();
+            leitor.onload = function(e) {
+                try {
+                    const dados = JSON.parse(e.target.result);
+                    if (Array.isArray(dados)) {
+                        const transaction = db.transaction(['ordens'], 'readwrite');
+                        const store = transaction.objectStore('ordens');
+                        dados.forEach(item => store.put(item));
+                        transaction.oncomplete = () => { carregarOS(); alert('Backup importado com sucesso!'); };
+                    }
+                } catch (err) { alert('Erro ao ler arquivo.'); }
+            };
+            leitor.readAsText(arquivo);
+        }
+    </script>
+</body>
+</html>

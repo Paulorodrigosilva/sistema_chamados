@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultados - Serviços Prestados</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
+        header { display: flex; justify-content: space-between; align-items: center; background: #343a40; color: white; padding: 10px 20px; border-radius: 5px; }
+        .card { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 8px 15px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        input, select { padding: 8px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; }
+        label { font-size: 14px; font-weight: bold; display: block; margin-bottom: 4px; color: #495057; }
+        
+        /* Dashboard de Cards de Indicadores */
+        .kpi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .kpi-card { background: #fff; padding: 15px; border-radius: 6px; border-left: 5px solid #007bff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .kpi-card.verde { border-left-color: #28a745; }
+        .kpi-card.amarelo { border-left-color: #ffc107; }
+        .kpi-card.roxo { border-left-color: #6f42c1; }
+        .kpi-title { font-size: 13px; color: #6c757d; font-weight: bold; text-transform: uppercase; }
+        .kpi-value { font-size: 24px; font-weight: bold; color: #343a40; margin-top: 5px; }
+
+        .filtro-container { background: #e9ecef; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+        
+        /* Tabela de Resultados */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; font-size: 14px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+        th { background-color: #f1f3f5; color: #343a40; font-weight: bold; }
+        tr:hover { background-color: #f8f9fa; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; display: inline-block; }
+        .badge-os { background-color: #17a2b8; }
+        .badge-plano { background-color: #fd7e14; }
+        .badge-chamado { background-color: #6f42c1; }
+        .badge-checklist { background-color: #20c997; }
+
+        .badge-status-concluido { background-color: #28a745; }
+        .badge-status-andamento { background-color: #ffc107; color: #212529; }
+        .badge-status-aberto { background-color: #6c757d; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>📊 Resultados e Relatório de Serviços Prestados</h2>
+        <div>
+            <span id="usuarioLogadoDisplay" style="margin-right: 15px; font-weight: bold; font-size: 14px;"></span>
+            <button onclick="window.location.href='/login.html'" style="background-color: #dc3545;">Sair</button>
+        </div>
+    </header>
+
+    <!-- Indicadores / KPIs -->
+    <div class="card" style="margin-top: 20px; background: transparent; padding: 0; box-shadow: none;">
+        <div class="kpi-container">
+            <div class="kpi-card">
+                <div class="kpi-title">Total de Registros</div>
+                <div class="kpi-value" id="kpiTotal">0</div>
+            </div>
+            <div class="kpi-card verde">
+                <div class="kpi-title">Concluídos / Finalizados</div>
+                <div class="kpi-value" id="kpiConcluidos">0</div>
+            </div>
+            <div class="kpi-card amarelo">
+                <div class="kpi-title">Em Andamento / Abertos</div>
+                <div class="kpi-value" id="kpiPendentes">0</div>
+            </div>
+            <div class="kpi-card roxo">
+                <div class="kpi-title">Chamados / OS</div>
+                <div class="kpi-value" id="kpiChamadosOS">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela Geral de Serviços e Consolidação -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0;">Consolidado Geral do Sistema</h3>
+            <button type="button" onclick="carregarResultados()" style="background-color: #17a2b8;">🔄 Atualizar Dados</button>
+        </div>
+        
+        <!-- Filtros -->
+        <div class="filtro-container">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                <strong>Filtrar por:</strong>
+                <select id="filtroTipo" onchange="aplicarFiltros()" style="width: 170px; margin-bottom: 0;">
+                    <option value="">Todos os Tipos</option>
+                    <option value="Ordem de Serviço">Ordens de Serviço</option>
+                    <option value="Plano de Ação">Plano de Ação</option>
+                    <option value="Checklist">Checklist</option>
+                </select>
+                <select id="filtroStatus" onchange="aplicarFiltros()" style="width: 150px; margin-bottom: 0;">
+                    <option value="">Todos os Status</option>
+                    <option value="Concluída">Concluído / Finalizado</option>
+                    <option value="Em Andamento">Em Andamento</option>
+                    <option value="Aberta">Aberta / Pendente</option>
+                </select>
+                <input type="text" id="filtroBusca" placeholder="Pesquisar por cliente, título ou responsável..." oninput="aplicarFiltros()" style="width: 280px; margin-bottom: 0;">
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" onclick="abrirEmNovaJanela()" style="background-color: #28a745; padding: 7px 12px; font-size: 13px;">🔍 Abrir em Nova Janela</button>
+                <button type="button" onclick="limparFiltros()" style="background-color: #6c757d; padding: 7px 12px; font-size: 13px;">Limpar Filtros</button>
+                <button type="button" onclick="limparHistoricoSistema()" style="background-color: #dc3545; padding: 7px 12px; font-size: 13px;">🗑️ Limpar Histórico</button>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Identificação / Título</th>
+                        <th>Detalhes / Cliente</th>
+                        <th>Responsável</th>
+                        <th>Status</th>
+                        <th>Data</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaCorpo">
+                    <!-- Preenchido via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let usuarioLogado = localStorage.getItem('usuarioLogado') || 
+                            localStorage.getItem('usuario') || 
+                            localStorage.getItem('nomeUsuario') || 
+                            localStorage.getItem('nome') || 'Administrador';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const displayUser = document.getElementById('usuarioLogadoDisplay');
+            if (displayUser) {
+                displayUser.innerText = `👤 Logado como: ${usuarioLogado}`;
+            }
+            carregarResultados();
+        });
+
+        let dadosGlobais = [];
+
+        function carregarResultados() {
+            dadosGlobais = [];
+
+            // 1. Ordens de Serviço
+            try {
+                const osSalvas = JSON.parse(localStorage.getItem('ordensServico')) || [];
+                if (Array.isArray(osSalvas)) {
+                    osSalvas.forEach(os => {
+                        if (os) {
+                            dadosGlobais.push({
+                                tipo: 'Ordem de Serviço',
+                                id: `OS #${os.id || os.codigo || 'N/A'}`,
+                                tituloEquipamento: os.equipamento || os.descricao || 'Sem descrição',
+                                clienteOuDetalhe: os.cliente || 'Cliente Geral',
+                                responsavel: os.tecnico || os.responsavel || 'Não atribuído',
+                                status: os.status || 'Aberta',
+                                data: os.dataAbertura || os.data || '-'
+                            });
+                        }
+                    });
+                }
+            } catch(e) { console.error('Erro OS:', e); }
+
+            // 2. Planos de Ação
+            try {
+                const planosSalvos = JSON.parse(localStorage.getItem('planosAcao')) || [];
+                if (Array.isArray(planosSalvos)) {
+                    planosSalvos.forEach(p => {
+                        if (p) {
+                            let totalTarefas = p.tarefas ? p.tarefas.length : 0;
+                            let concluidas = p.tarefas ? p.tarefas.filter(t => t && t.concluido).length : 0;
+                            let statusPlano = 'Em Andamento';
+                            if (totalTarefas > 0 && concluidas === totalTarefas) {
+                                statusPlano = 'Concluída';
+                            } else if (concluidas === 0) {
+                                statusPlano = 'Aberta';
+                            }
+
+                            dadosGlobais.push({
+                                tipo: 'Plano de Ação',
+                                id: p.titulo || 'Plano sem título',
+                                tituloEquipamento: `Meta: ${p.objetivo || p.descricao || ''}`,
+                                clienteOuDetalhe: `Plano Geral (${concluidas}/${totalTarefas} etapas)`,
+                                responsavel: p.responsavelGeral || 'Não atribuído',
+                                status: p.status || statusPlano,
+                                data: p.dataCriacao || '-'
+                            });
+                        }
+                    });
+                }
+            } catch(e) { console.error('Erro Planos:', e); }
+
+            // 3. Chamados (Seguro)
+            try {
+                let chamadosSalvos = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    let key = localStorage.key(i);
+                    if (key) {
+                        let keyLower = key.toLowerCase();
+                        if (keyLower.includes('chamado') || keyLower.includes('ticket') || keyLower.includes('suporte')) {
+                            let dado = localStorage.getItem(key);
+                            if (dado) {
+                                let parsed = JSON.parse(dado);
+                                if (Array.isArray(parsed)) {
+                                    parsed.forEach(item => { if(item) chamadosSalvos.push(item); });
+                                } else if (parsed && typeof parsed === 'object') {
+                                    chamadosSalvos.push(parsed);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                chamadosSalvos.forEach(c => {
+                    dadosGlobais.push({
+                        tipo: 'Chamado',
+                        id: `Chamado #${c.id || c.codigo || c.numero || c.protocolo || 'N/A'}`,
+                        tituloEquipamento: c.assunto || c.titulo || c.descricao || c.problema || 'Sem descrição',
+                        clienteOuDetalhe: c.cliente || c.solicitante || c.empresa || c.setor || 'Setor Geral',
+                        responsavel: c.tecnico || c.responsavel || c.atendente || 'Não atribuído',
+                        status: c.status || c.situacao || 'Aberta',
+                        data: c.data || c.dataAbertura || c.dataCriacao || '-'
+                    });
+                });
+            } catch(e) { console.error('Erro Chamados:', e); }
+
+            // 4. Checklists (Seguro)
+            try {
+                let checklistsSalvos = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    let key = localStorage.key(i);
+                    if (key) {
+                        let keyLower = key.toLowerCase();
+                        if ((keyLower.includes('checklist') || keyLower.includes('check')) && !keyLower.includes('chamado')) {
+                            let dado = localStorage.getItem(key);
+                            if (dado) {
+                                let parsed = JSON.parse(dado);
+                                if (Array.isArray(parsed)) {
+                                    parsed.forEach(item => { if(item) checklistsSalvos.push(item); });
+                                } else if (parsed && typeof parsed === 'object') {
+                                    checklistsSalvos.push(parsed);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                checklistsSalvos.forEach(chk => {
+                    dadosGlobais.push({
+                        tipo: 'Checklist',
+                        id: chk.titulo || chk.nome || chk.nomeChecklist || `Checklist #${chk.id || 'N/A'}`,
+                        tituloEquipamento: chk.equipamento || chk.local || chk.descricao || 'Verificação padrão',
+                        clienteOuDetalhe: chk.cliente || chk.setor || chk.unidade || 'Geral',
+                        responsavel: chk.responsavel || chk.operador || usuarioLogado,
+                        status: chk.status || 'Concluída',
+                        data: chk.data || chk.dataCriacao || chk.dataExecucao || '-'
+                    });
+                });
+            } catch(e) { console.error('Erro Checklists:', e); }
+
+            atualizarKPIs(dadosGlobais);
+            renderizarTabela(dadosGlobais);
+        }
+
+        function atualizarKPIs(lista) {
+            const total = lista.length;
+            const concluidos = lista.filter(item => {
+                let s = (item.status || '').toLowerCase();
+                return s.includes('concluíd') || s.includes('concluid') || s.includes('finaliz') || s.includes('fechad');
+            }).length;
+            const pendentes = total - concluidos;
+            const totalChamadosOS = lista.filter(item => item.tipo === 'Ordem de Serviço' || item.tipo === 'Chamado').length;
+
+            document.getElementById('kpiTotal').innerText = total;
+            document.getElementById('kpiConcluidos').innerText = concluidos;
+            document.getElementById('kpiPendentes').innerText = pendentes;
+            document.getElementById('kpiChamadosOS').innerText = totalChamadosOS;
+        }
+
+        function renderizarTabela(lista) {
+            const tbody = document.getElementById('tabelaCorpo');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (!lista || lista.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #6c757d; padding: 20px;">Nenhum registro encontrado para este filtro.</td></tr>`;
+                return;
+            }
+
+            lista.forEach(item => {
+                let badgeTipo = 'badge-os';
+                if (item.tipo === 'Plano de Ação') badgeTipo = 'badge-plano';
+                if (item.tipo === 'Chamado') badgeTipo = 'badge-chamado';
+                if (item.tipo === 'Checklist') badgeTipo = 'badge-checklist';
+
+                let badgeStatus = 'badge-status-aberto';
+                let sLower = (item.status || '').toLowerCase();
+                if (sLower.includes('concluíd') || sLower.includes('concluid') || sLower.includes('finaliz') || sLower.includes('fechad')) badgeStatus = 'badge-status-concluido';
+                else if (sLower.includes('andamento')) badgeStatus = 'badge-status-andamento';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="badge ${badgeTipo}">${item.tipo}</span></td>
+                    <td><strong>${item.id}</strong><br><small style="color: #6c757d;">${item.tituloEquipamento}</small></td>
+                    <td>${item.clienteOuDetalhe}</td>
+                    <td>${item.responsavel}</td>
+                    <td><span class="badge ${badgeStatus}">${item.status}</span></td>
+                    <td>${item.data}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function obterDadosFiltrados() {
+            const tipoFiltro = document.getElementById('filtroTipo').value.toLowerCase().trim();
+            const statusFiltro = document.getElementById('filtroStatus').value.toLowerCase().trim();
+            const buscaFiltro = document.getElementById('filtroBusca').value.toLowerCase().trim();
+
+            return dadosGlobais.filter(item => {
+                let atendeTipo = true;
+                if (tipoFiltro) {
+                    let tipoItemClean = (item.tipo || '').toLowerCase().trim();
+                    atendeTipo = tipoItemClean.includes(tipoFiltro) || tipoFiltro.includes(tipoItemClean);
+                }
+
+                let atendeStatus = true;
+                if (statusFiltro) {
+                    let itemStatusLower = (item.status || '').toLowerCase();
+                    
+                    if (statusFiltro.includes('concluíd') || statusFiltro.includes('concluid')) {
+                        atendeStatus = itemStatusLower.includes('concluíd') || itemStatusLower.includes('concluid') || itemStatusLower.includes('finaliz') || itemStatusLower.includes('fechad');
+                    } else if (statusFiltro.includes('andamento')) {
+                        atendeStatus = itemStatusLower.includes('andamento');
+                    } else if (statusFiltro.includes('aberta') || statusFiltro.includes('pendent')) {
+                        atendeStatus = itemStatusLower.includes('abert') || itemStatusLower.includes('pendent');
+                    } else {
+                        atendeStatus = itemStatusLower.includes(statusFiltro);
+                    }
+                }
+
+                const textoCompleto = `${item.id} ${item.tituloEquipamento} ${item.clienteOuDetalhe} ${item.responsavel}`.toLowerCase();
+                const atendeBusca = buscaFiltro ? textoCompleto.includes(buscaFiltro) : true;
+
+                return atendeTipo && atendeStatus && atendeBusca;
+            });
+        }
+
+        function aplicarFiltros() {
+            renderizarTabela(obterDadosFiltrados());
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroTipo').value = '';
+            document.getElementById('filtroStatus').value = '';
+            document.getElementById('filtroBusca').value = '';
+            renderizarTabela(dadosGlobais);
+        }
+
+        function limparHistoricoSistema() {
+            if (confirm('Tem certeza que deseja apagar todo o histórico de registros salvos? Esta ação não pode ser desfeita.')) {
+                // Remove os itens principais do sistema mantendo o login ativo
+                localStorage.removeItem('ordensServico');
+                localStorage.removeItem('planosAcao');
+
+                // Remove chaves relacionadas a chamados, tickets, checklists ou suporte
+                let chavesParaRemover = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    let key = localStorage.key(i);
+                    if (key) {
+                        let kLower = key.toLowerCase();
+                        if (kLower.includes('chamado') || kLower.includes('ticket') || kLower.includes('suporte') || kLower.includes('checklist') || kLower.includes('check')) {
+                            chavesParaRemover.push(key);
+                        }
+                    }
+                }
+                chavesParaRemover.forEach(k => localStorage.removeItem(k));
+
+                alert('Histórico limpo com sucesso!');
+                carregarResultados();
+            }
+        }
+
+        function abrirEmNovaJanela() {
+            const filtrados = obterDadosFiltrados();
+            const tipoSelecionado = document.getElementById('filtroTipo').value || 'Relatório Geral';
+
+            let novaJanela = window.open('', '_blank');
+            if (!novaJanela) {
+                alert('Permita pop-ups no seu navegador para abrir a nova janela.');
+                return;
+            }
+
+            let linhasHtml = '';
+            if (filtrados.length === 0) {
+                linhasHtml = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #6c757d;">Nenhum dado encontrado para os filtros selecionados.</td></tr>`;
+            } else {
+                filtrados.forEach(item => {
+                    linhasHtml += `
+                        <tr>
+                            <td><b>${item.tipo}</b></td>
+                            <td><strong>${item.id}</strong><br><span style="color: #666; font-size: 12px;">${item.tituloEquipamento}</span></td>
+                            <td>${item.clienteOuDetalhe}</td>
+                            <td>${item.responsavel}</td>
+                            <td><b>${item.status}</b></td>
+                            <td>${item.data}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            novaJanela.document.write(`
+                <!DOCTYPE html>
+                <html lang="pt-BR">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Relatório Filtrado - ${tipoSelecionado}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 30px; color: #333; }
+                        h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 8px; }
+                        .info { margin-bottom: 15px; font-size: 14px; color: #555; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+                        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                        th { background-color: #f1f3f5; color: #333; }
+                        tr:nth-child(even) { background-color: #f8f9fa; }
+                        .no-print { margin-top: 20px; }
+                        @media print { .no-print { display: none; } }
+                    </style>
+                </head>
+                <body>
+                    <h2>📄 Relatório Detalhado: ${tipoSelecionado}</h2>
+                    <div class="info">
+                        <strong>Emitido por:</strong> ${usuarioLogado} | <strong>Data/Hora:</strong> ${new Date().toLocaleString()} | <strong>Total de registros:</strong> ${filtrados.length}
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Identificação / Título</th>
+                                <th>Detalhes / Cliente</th>
+                                <th>Responsável</th>
+                                <th>Status</th>
+                                <th>Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${linhasHtml}
+                        </tbody>
+                    </table>
+                    <div class="no-print" style="margin-top: 20px;">
+                        <button onclick="window.print()" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">🖨️ Imprimir / Salvar PDF</button>
+                        <button onclick="window.close()" style="padding: 10px 20px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">❌ Fechar Janela</button>
+                    </div>
+                </body>
+                </html>
+            `);
+            novaJanela.document.close();
+        }
+    </script>
+</body>
+</html>

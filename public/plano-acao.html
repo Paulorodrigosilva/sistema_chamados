@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestão de Planos de Ação</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
+        header { display: flex; justify-content: space-between; align-items: center; background: #343a40; color: white; padding: 10px 20px; border-radius: 5px; }
+        .card { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 8px 15px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        input, select, textarea { padding: 8px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; }
+        label { font-size: 14px; font-weight: bold; display: block; margin-bottom: 4px; color: #495057; }
+        .plano-box { border: 1px solid #ced4da; padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fff; }
+        .tarefa-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; background: #f1f3f5; padding: 8px; border-radius: 4px; }
+        .concluido { text-decoration: line-through; color: #6c757d; }
+        .filtro-container { background: #e9ecef; padding: 12px; border-radius: 6px; margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; background-color: #17a2b8; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>Módulo de Planos de Ação</h2>
+        <div>
+            <span id="usuarioLogadoDisplay" style="margin-right: 15px; font-weight: bold; font-size: 14px;"></span>
+           
+        </div>
+    </header>
+
+    <!-- Criar Novo Plano de Ação -->
+    <div class="card" id="secaoCriarPlano">
+        <h3>Criar Novo Plano de Ação</h3>
+        
+        <form id="formPlano">
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div style="flex: 2; min-width: 280px;">
+                    <label>Título do Plano de Ação:</label>
+                    <input type="text" id="tituloPlano" placeholder="Ex: Redução de Custos com Energia" required style="width: 100%;">
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <label>Responsável Geral:</label>
+                    <input type="text" id="responsavelPlano" placeholder="Nome do responsável" required style="width: 100%;">
+                </div>
+            </div>
+
+            <div>
+                <label>Objetivo / Meta Esperada:</label>
+                <textarea id="objetivoPlano" placeholder="Descreva qual o objetivo principal deste plano..." required style="width: 100%; height: 60px; resize: vertical;"></textarea>
+            </div>
+
+            <h4 style="margin-top: 15px; margin-bottom: 8px; color: #343a40;">Etapas / Ações (Metodologia 5W2H simplificada)</h4>
+            
+            <div id="containerTarefas">
+                <!-- Linha de tarefa inicial -->
+                <div class="tarefa-row">
+                    <input type="text" class="tarefa-acao" placeholder="O que fazer (Ação)" required style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                    <input type="text" class="tarefa-responsavel" placeholder="Quem faz" required style="flex: 1; min-width: 130px; margin-bottom: 0;">
+                    <input type="date" class="tarefa-prazo" required style="width: 140px; margin-bottom: 0;">
+                </div>
+            </div>
+
+            <button type="button" onclick="adicionarLinhaTarefa()" style="background-color: #6c757d; margin-top: 5px; margin-bottom: 15px;">+ Adicionar Mais uma Etapa</button>
+            
+            <br>
+            <button type="submit" style="background-color: #28a745; font-size: 15px; font-weight: bold; padding: 10px 20px;">Salvar Plano de Ação</button>
+        </form>
+    </div>
+
+    <!-- Lista de Planos de Ação Cadastrados -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0;">Planos de Ação Cadastrados</h3>
+            <button type="button" onclick="irParaCriacao()" style="background-color: #28a745; font-weight: bold;">+ Novo Plano</button>
+        </div>
+        
+        <!-- Filtros -->
+        <div class="filtro-container">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                <strong>Filtros:</strong>
+                <input type="text" id="filtroTexto" placeholder="Filtrar por Título..." oninput="filtrarPlanos()" style="width: 200px; margin-bottom: 0;">
+                <input type="text" id="filtroResponsavel" placeholder="Filtrar por Responsável..." oninput="filtrarPlanos()" style="width: 180px; margin-bottom: 0;">
+            </div>
+            <button type="button" onclick="limparFiltros()" style="background-color: #6c757d; padding: 7px 12px; font-size: 13px;">Limpar Filtros</button>
+        </div>
+
+        <div id="listaPlanos">
+            <!-- Carregado via JS -->
+        </div>
+    </div>
+
+    <script>
+        let usuarioLogado = localStorage.getItem('usuarioLogado') || 
+                            localStorage.getItem('usuario') || 
+                            localStorage.getItem('nomeUsuario') || 
+                            localStorage.getItem('nome') || 'Administrador';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const displayUser = document.getElementById('usuarioLogadoDisplay');
+            if (displayUser) {
+                displayUser.innerText = `👤 Logado como: ${usuarioLogado}`;
+            }
+            document.getElementById('responsavelPlano').value = usuarioLogado;
+            carregarPlanos();
+        });
+
+        let planosGlobais = [];
+
+        function irParaCriacao() {
+            document.getElementById('secaoCriarPlano').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('tituloPlano').focus();
+        }
+
+        function adicionarLinhaTarefa() {
+            const container = document.getElementById('containerTarefas');
+            const row = document.createElement('div');
+            row.className = 'tarefa-row';
+            row.innerHTML = `
+                <input type="text" class="tarefa-acao" placeholder="O que fazer (Ação)" required style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                <input type="text" class="tarefa-responsavel" placeholder="Quem faz" required style="flex: 1; min-width: 130px; margin-bottom: 0;">
+                <input type="date" class="tarefa-prazo" required style="width: 140px; margin-bottom: 0;">
+                <button type="button" onclick="this.parentElement.remove()" style="background-color: #dc3545; padding: 7px 10px; font-size: 12px; margin-bottom: 0;">✕</button>
+            `;
+            container.appendChild(row);
+        }
+
+        // Salvar Novo Plano no localStorage
+        document.getElementById('formPlano').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const acoesInputs = document.querySelectorAll('.tarefa-acao');
+            const respInputs = document.querySelectorAll('.tarefa-responsavel');
+            const prazoInputs = document.querySelectorAll('.tarefa-prazo');
+
+            let tarefas = [];
+            for (let i = 0; i < acoesInputs.length; i++) {
+                tarefas.push({
+                    id: Date.now() + i,
+                    acao: acoesInputs[i].value.trim(),
+                    responsavel: respInputs[i].value.trim(),
+                    prazo: prazoInputs[i].value,
+                    concluido: false
+                });
+            }
+
+            const novoPlano = {
+                id: Date.now(),
+                titulo: document.getElementById('tituloPlano').value.trim(),
+                responsavelGeral: document.getElementById('responsavelPlano').value.trim(),
+                objetivo: document.getElementById('objetivoPlano').value.trim(),
+                tarefas: tarefas,
+                criadoPor: usuarioLogado,
+                dataCriacao: new Date().toLocaleDateString('pt-BR')
+            };
+
+            let listaSalva = JSON.parse(localStorage.getItem('planosAcao')) || [];
+            listaSalva.unshift(novoPlano);
+            localStorage.setItem('planosAcao', JSON.stringify(listaSalva));
+
+            alert('Plano de Ação criado com sucesso!');
+            document.getElementById('formPlano').reset();
+            document.getElementById('responsavelPlano').value = usuarioLogado;
+            
+            // Reseta o container de tarefas para apenas 1 linha limpa
+            document.getElementById('containerTarefas').innerHTML = `
+                <div class="tarefa-row">
+                    <input type="text" class="tarefa-acao" placeholder="O que fazer (Ação)" required style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                    <input type="text" class="tarefa-responsavel" placeholder="Quem faz" required style="flex: 1; min-width: 130px; margin-bottom: 0;">
+                    <input type="date" class="tarefa-prazo" required style="width: 140px; margin-bottom: 0;">
+                </div>
+            `;
+
+            carregarPlanos();
+        });
+
+        function carregarPlanos() {
+            const salvos = localStorage.getItem('planosAcao');
+            planosGlobais = salvos ? JSON.parse(salvos) : [];
+            renderizarPlanos(planosGlobais);
+        }
+
+        function renderizarPlanos(lista) {
+            const container = document.getElementById('listaPlanos');
+            container.innerHTML = '';
+
+            if (!lista || lista.length === 0) {
+                container.innerHTML = '<p>Nenhum Plano de Ação cadastrado.</p>';
+                return;
+            }
+
+            lista.forEach(plano => {
+                const box = document.createElement('div');
+                box.className = 'plano-box';
+
+                let tarefasHtml = plano.tarefas.map(t => {
+                    let dataFormatada = t.prazo ? t.prazo.split('-').reverse().join('/') : '';
+                    return `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e9ecef;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" ${t.concluido ? 'checked' : ''} onchange="alternarTarefa(${plano.id}, ${t.id})" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span class="${t.concluido ? 'concluido' : ''}" style="font-size: 14px;">🎯 ${t.acao}</span>
+                            </div>
+                            <div style="font-size: 13px; color: #6c757d;">
+                                👤 <strong>${t.responsavel}</strong> | 📅 Prazo: ${dataFormatada}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                box.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <h4 style="margin: 0; color: #007bff;">📋 ${plano.titulo}</h4>
+                        <button onclick="deletarPlano(${plano.id})" style="background-color: #dc3545; padding: 4px 8px; font-size: 12px;">Excluir Plano</button>
+                    </div>
+                    <div style="font-size: 14px; color: #495057; margin-bottom: 4px;">🎯 <strong>Objetivo:</strong> ${plano.objetivo}</div>
+                    <div style="font-size: 13px; color: #6c757d; margin-bottom: 10px;">
+                        ✍️ Criado por ${plano.criadoPor} em ${plano.dataCriacao} | 👷 Responsável Geral: <strong>${plano.responsavelGeral}</strong>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; border: 1px solid #dee2e6;">
+                        <strong style="font-size: 13px; display: block; margin-bottom: 6px; color: #343a40;">Etapas do Plano:</strong>
+                        ${tarefasHtml}
+                    </div>
+                `;
+                container.appendChild(box);
+            });
+        }
+
+        function alternarTarefa(planoId, tarefaId) {
+            let lista = JSON.parse(localStorage.getItem('planosAcao')) || [];
+            const plano = lista.find(p => p.id === planoId);
+            if (plano) {
+                const tarefa = plano.tarefas.find(t => t.id === tarefaId);
+                if (tarefa) {
+                    tarefa.concluido = !tarefa.concluido;
+                    localStorage.setItem('planosAcao', JSON.stringify(lista));
+                    carregarPlanos();
+                }
+            }
+        }
+
+        function deletarPlano(id) {
+            if (!confirm('Deseja realmente excluir este Plano de Ação inteiro?')) return;
+            let lista = JSON.parse(localStorage.getItem('planosAcao')) || [];
+            lista = lista.filter(p => p.id !== id);
+            localStorage.setItem('planosAcao', JSON.stringify(lista));
+            carregarPlanos();
+        }
+
+        function filtrarPlanos() {
+            const textoFiltro = document.getElementById('filtroTexto').value.toLowerCase();
+            const respFiltro = document.getElementById('filtroResponsavel').value.toLowerCase();
+
+            const filtrados = planosGlobais.filter(p => {
+                const atendeTexto = (p.titulo || '').toLowerCase().includes(textoFiltro);
+                const atendeResp = (p.responsavelGeral || '').toLowerCase().includes(respFiltro);
+                return atendeTexto && atendeResp;
+            });
+
+            renderizarPlanos(filtrados);
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroTexto').value = '';
+            document.getElementById('filtroResponsavel').value = '';
+            renderizarPlanos(planosGlobais);
+        }
+    </script>
+</body>
+</html>

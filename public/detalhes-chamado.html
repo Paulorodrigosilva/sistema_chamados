@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Detalhes e Edição do Chamado</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; color: #333; }
+        header { display: flex; justify-content: space-between; align-items: center; background: #343a40; color: white; padding: 10px 20px; border-radius: 5px; }
+        .card { background: white; padding: 20px; margin-top: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 8px 15px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #495057; }
+        input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; font-family: Arial, sans-serif; }
+        textarea { height: 100px; resize: vertical; }
+        .galeria-fotos { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        .foto-item { position: relative; width: 100px; height: 100px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; background: #eee; }
+        .foto-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        #modalFoto { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
+        #modalFoto img { max-width: 90%; max-height: 90%; border-radius: 6px; }
+        #modalFoto span { position: absolute; top: 20px; right: 30px; color: white; font-size: 35px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>Gerenciamento do Chamado #<span id="lblIdChamado">...</span></h2>
+        <button onclick="window.close()" style="background-color: #6c757d;">Fechar Janela</button>
+    </header>
+
+    <div class="card">
+        <h3>Informações Gerais</h3>
+        <form id="formEdicaoDetalhada">
+            <div class="info-grid">
+                <div class="form-group">
+                    <label>Status:</label>
+                    <select id="selectStatus">
+                        <option value="Aberto">Aberto</option>
+                        <option value="Em Andamento">Em Andamento</option>
+                        <option value="Fechado">Fechado / Resolvido</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Urgência:</label>
+                    <select id="selectUrgencia">
+                        <option value="Baixa">Baixa</option>
+                        <option value="Média">Média</option>
+                        <option value="Alta">Alta</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Loja:</label>
+                    <input type="text" id="inputLoja" readonly style="background-color: #e9ecef;">
+                </div>
+                <div class="form-group">
+                    <label>Setor:</label>
+                    <input type="text" id="inputSetor" readonly style="background-color: #e9ecef;">
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <div class="form-group">
+                    <label>Equipamento / Sistema:</label>
+                    <input type="text" id="inputEquipamento" readonly style="background-color: #e9ecef;">
+                </div>
+                <div class="form-group">
+                    <label>Responsável:</label>
+                    <select id="selectResponsavel"></select>
+                </div>
+                <div class="form-group">
+                    <label>Setor Responsável:</label>
+                    <select id="selectSetorResponsavel"></select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Descrição detalhada do problema:</label>
+                <textarea id="txtDescricao"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Observações / Relatório do Trabalho Realizado:</label>
+                <textarea id="txtTrabalhoRealizado" placeholder="Descreva o que foi feito para solucionar o problema..."></textarea>
+            </div>
+
+            <button type="button" onclick="salvarAlteracoes()" style="background-color: #28a745;">Salvar Alterações</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>Fotos dos Trabalhos Realizados</h3>
+        <div class="form-group">
+            <label>Adicionar novas fotos:</label>
+            <input type="file" id="inputNovasFotos" accept="image/*" multiple>
+            <button type="button" onclick="enviarFotos()" style="margin-top: 10px; background-color: #17a2b8;">Enviar Fotos Selecionadas</button>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <label>Fotos anexadas:</label>
+            <div id="galeriaFotos" class="galeria-fotos">
+                <!-- Preenchido via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para ampliar fotos -->
+    <div id="modalFoto" onclick="fecharModal()">
+        <span onclick="fecharModal()">&times;</span>
+        <img id="imgAmpliada" src="">
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const chamadoId = urlParams.get('id');
+        let cacheResponsaveis = [];
+        let cacheSetores = [];
+
+        document.getElementById('lblIdChamado').textContent = chamadoId || 'N/A';
+
+        async function carregarDadosIniciais() {
+            if (!chamadoId) {
+                alert('ID do chamado não informado.');
+                return;
+            }
+
+            try {
+                // Carregar selects de apoio
+                const [resResp, resSetores, resChamados] = await Promise.all([
+                    fetch('/api/responsaveis'),
+                    fetch('/api/setores'),
+                    fetch('/api/chamados')
+                ]);
+
+                if (resResp.ok) cacheResponsaveis = await resResp.json();
+                if (resSetores.ok) cacheSetores = await resSetores.json();
+
+                preencherSelects();
+
+                // Buscar dados específicos do chamado
+                if (resChamados.ok) {
+                    const chamados = await resChamados.json();
+                    const chamado = chamados.find(c => String(c.id) === String(chamadoId));
+                    if (chamado) preencherFormulario(chamado);
+                }
+            } catch (e) {
+                console.error("Erro ao carregar dados:", e);
+            }
+        }
+
+        function preencherSelects() {
+            const selResp = document.getElementById('selectResponsavel');
+            selResp.innerHTML = '<option value="">Selecione...</option>' + 
+                cacheResponsaveis.map(r => `<option value="${r.id || r.nome}">${r.nome || r}</option>`).join('');
+
+            const selSetorResp = document.getElementById('selectSetorResponsavel');
+            selSetorResp.innerHTML = '<option value="">Selecione...</option>' + 
+                cacheSetores.map(s => `<option value="${s.id || s.nome}">${s.nome || s}</option>`).join('');
+        }
+
+        function preencherFormulario(c) {
+            document.getElementById('selectStatus').value = c.status || 'Aberto';
+            document.getElementById('selectUrgencia').value = c.urgencia || 'Média';
+            document.getElementById('inputLoja').value = c.loja || '';
+            document.getElementById('inputSetor').value = c.setor || '';
+            document.getElementById('inputEquipamento').value = c.equipamento || '';
+            document.getElementById('txtDescricao').value = c.descricao || '';
+            document.getElementById('txtTrabalhoRealizado').value = c.trabalho_realizado || '';
+
+            if (c.responsavel) {
+                const opt = Array.from(document.getElementById('selectResponsavel').options).find(o => o.text === c.responsavel);
+                if (opt) opt.selected = true;
+            }
+
+            const setorResp = c.setor_responsavel || c.setorResponsavel;
+            if (setorResp) {
+                const opt = Array.from(document.getElementById('selectSetorResponsavel').options).find(o => o.text === setorResp || o.value == setorResp);
+                if (opt) opt.selected = true;
+            }
+
+            // Renderizar fotos (se houver foto principal ou galeria de fotos do trabalho)
+            renderizarGaleria(c);
+        }
+
+        function renderizarGaleria(c) {
+            const galeria = document.getElementById('galeriaFotos');
+            galeria.innerHTML = '';
+
+            let fotos = [];
+            if (c.foto_url) fotos.push(c.foto_url);
+            // Se o seu backend retornar um array de fotos adicionais (ex: c.fotos_trabalho)
+            if (c.fotos_trabalho && Array.isArray(c.fotos_trabalho)) {
+                fotos = fotos.concat(c.fotos_trabalho);
+            }
+
+            if (fotos.length === 0) {
+                galeria.innerHTML = '<span style="color: #666; font-size: 13px;">Nenhuma foto anexada até o momento.</span>';
+                return;
+            }
+
+            fotos.forEach(url => {
+                const div = document.createElement('div');
+                div.className = 'foto-item';
+                div.innerHTML = `<img src="${url}" onclick="ampliarFoto('${url}')" title="Clique para ampliar">`;
+                galeria.appendChild(div);
+            });
+        }
+
+        async function salvarAlteracoes() {
+            const dadosAtualizados = {
+                status: document.getElementById('selectStatus').value,
+                urgencia: document.getElementById('selectUrgencia').value,
+                descricao: document.getElementById('txtDescricao').value,
+                trabalho_realizado: document.getElementById('txtTrabalhoRealizado').value,
+                responsavel_id: document.getElementById('selectResponsavel').value || null,
+                setor_responsavel_id: document.getElementById('selectSetorResponsavel').value || null
+            };
+
+            try {
+                const res = await fetch(`/api/chamados/${chamadoId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dadosAtualizados)
+                });
+
+                if (res.ok) {
+                    alert('Chamado atualizado com sucesso!');
+                    window.opener?.carregarChamados?.(); // Atualiza a janela principal se estiver aberta
+                } else {
+                    alert('Erro ao salvar alterações.');
+                }
+            } catch (e) {
+                console.error("Erro:", e);
+                alert('Erro de conexão ao salvar.');
+            }
+        }
+
+        async function enviarFotos() {
+            const inputFiles = document.getElementById('inputNovasFotos');
+            if (inputFiles.files.length === 0) {
+                alert('Selecione ao menos uma foto para enviar.');
+                return;
+            }
+
+            const formData = new FormData();
+            for (let i = 0; i < inputFiles.files.length; i++) {
+                formData.append('fotos', inputFiles.files[i]);
+            }
+
+            try {
+                const res = await fetch(`/api/chamados/${chamadoId}/fotos`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (res.ok) {
+                    alert('Foto(s) enviada(s) com sucesso!');
+                    inputFiles.value = '';
+                    carregarDadosIniciais(); // Recarrega os dados para atualizar a galeria
+                } else {
+                    alert('Erro ao enviar as fotos.');
+                }
+            } catch (e) {
+                console.error("Erro:", e);
+                alert('Erro de conexão ao enviar fotos.');
+            }
+        }
+
+        function ampliarFoto(url) {
+            document.getElementById('imgAmpliada').src = url;
+            document.getElementById('modalFoto').style.display = 'flex';
+        }
+
+        function fecharModal() {
+            document.getElementById('modalFoto').style.display = 'none';
+        }
+
+        carregarDadosIniciais();
+    </script>
+</body>
+</html>
