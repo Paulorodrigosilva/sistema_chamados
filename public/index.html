@@ -1,1 +1,608 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Gestão - Dashboard</title>
+    <!-- Google Fonts & Font Awesome para ícones modernos -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-main: #f1f5f9;
+            --surface: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #10b981;
+            --info: #06b6d4;
+            --warning: #f59e0b;
+            --purple: #8b5cf6;
+            --danger: #ef4444;
+            --radius-lg: 16px;
+            --radius-md: 8px;
+            --radius-sm: 6px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Botão Mobile (...) para abrir o menu */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 100;
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: var(--radius-md);
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .mobile-menu-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Sidebar Fixa à Esquerda (Mais Compacta) */
+        .sidebar {
+            width: 270px;
+            background: var(--surface);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            height: 100vh;
+            z-index: 10;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .sidebar-header h2 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.025em;
+        }
+
+        .sidebar-header p {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .nav-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .btn-menu {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 9px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .btn-menu span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-menu i.icon-prefix {
+            font-size: 14px;
+            width: 18px;
+            text-align: center;
+        }
+
+        .btn-menu i.fa-chevron-right {
+            font-size: 9px;
+            color: var(--text-secondary);
+            transition: transform 0.2s;
+        }
+
+        .btn-menu:hover, .btn-menu.active {
+            background: #f8fafc;
+            border-color: var(--border-color);
+            color: var(--primary);
+        }
+
+        .btn-menu:hover i.fa-chevron-right, .btn-menu.active i.fa-chevron-right {
+            transform: translateX(3px);
+            color: var(--primary);
+        }
+
+        /* Cores específicas dos ícones */
+        .btn-chamados i.icon-prefix { color: var(--success); }
+        .btn-checklists i.icon-prefix { color: var(--primary); }
+        .btn-os i.icon-prefix { color: var(--info); }
+        .btn-plano i.icon-prefix { color: var(--warning); }
+        .btn-resultados i.icon-prefix { color: var(--success); }
+        .btn-usuarios i.icon-prefix { color: var(--purple); }
+        .btn-cadastros i.icon-prefix { color: var(--text-secondary); }
+        .btn-excluir-usuarios i.icon-prefix { color: var(--danger); }
+        .btn-checklists-adm i.icon-prefix { color: var(--info); }
+
+        .divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 10px 0;
+        }
+
+        .btn-sair {
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            justify-content: center;
+            font-weight: 600;
+            margin-top: auto;
+        }
+
+        .btn-sair:hover {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+
+        /* Área de Exibição Principal (Lateral ao Dashboard) */
+        .main-viewport {
+            flex: 1;
+            height: 100vh;
+            background: var(--bg-main);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* Estilo da Tela de Boas-Vindas Automática */
+        .viewport-welcome {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 40px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: white;
+            text-align: center;
+        }
+
+        /* Container do Iframe / Janela Dinâmica */
+        .content-frame-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        /* Modal Moderno */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 380px;
+            text-align: left;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 16px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-content label {
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-content input, 
+        .modal-content select {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-family: inherit;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: #f8fafc;
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        .modal-content input:focus, 
+        .modal-content select:focus {
+            background: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .btn-salvar, .btn-cancelar {
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            flex: 1;
+            transition: var(--transition);
+        }
+
+        .btn-salvar {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-salvar:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-cancelar {
+            background-color: #f1f5f9;
+            color: var(--text-secondary);
+        }
+
+        .btn-cancelar:hover {
+            background-color: #e2e8f0;
+        }
+
+        /* Responsividade para Dispositivos Móveis (Celulares) */
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: flex;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                transform: translateX(-100%);
+                box-shadow: 10px 0 30px rgba(0,0,0,0.2);
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .main-viewport {
+                padding-top: 60px; /* Dá espaço para o botão flutuante no topo */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Botão flutuante (...) exclusivo para celular -->
+    <button class="mobile-menu-btn" onclick="toggleMenuMobile()" title="Abrir Menu">
+        <i class="fa-solid fa-ellipsis"></i>
+    </button>
+
+    <!-- Dashboard Sidebar (Esquerda e Mais Compacta) -->
+    <aside class="sidebar" id="sidebarMenu">
+        <div class="sidebar-header">
+            <div class="header-icon">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div>
+                <h2>Painel de Gestão</h2>
+                <p>Navegação principal</p>
+            </div>
+        </div>
+        
+        <div class="nav-grid">
+            <a href="#" onclick="carregarPagina('chamados.html', this)" class="btn-menu btn-chamados">
+                <span><i class="fa-solid fa-screwdriver-wrench icon-prefix"></i> Chamados</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            <a href="#" onclick="carregarPagina('checklists.html', this)" class="btn-menu btn-checklists">
+                <span><i class="fa-solid fa-clipboard-check icon-prefix"></i> Checklists</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            <a href="#" onclick="carregarPagina('ordem-servico.html', this)" class="btn-menu btn-os">
+                <span><i class="fa-solid fa-file-lines icon-prefix"></i> Ordens de Serviço (O.S.)</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            <a href="#" onclick="carregarPagina('plano-acao.html', this)" class="btn-menu btn-plano">
+                <span><i class="fa-solid fa-bullseye icon-prefix"></i> Plano de Ação</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            <a href="#" onclick="carregarPagina('resultados.html', this)" class="btn-menu btn-resultados">
+                <span><i class="fa-solid fa-chart-pie icon-prefix"></i> Resultados</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            
+            <!-- Botão Adicionar Usuário (Apenas Admin) -->
+            <button id="btnAdminUsuarios" onclick="abrirModalUsuario()" class="btn-menu btn-usuarios" style="display: none;">
+                <span><i class="fa-solid fa-user-plus icon-prefix"></i> Adicionar Usuário</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            
+            <!-- Botão Cadastros (Visível para Admin e Master) -->
+            <a href="#" onclick="carregarPagina('cadastros.html', this)" id="btnAdminCadastros" class="btn-menu btn-cadastros" style="display: none;">
+                <span><i class="fa-solid fa-folder-open icon-prefix"></i> Cadastros</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            
+            <!-- Botão Excluir Usuários (Apenas Admin) -->
+            <button id="btnExcluirUsuarios" onclick="irParaExcluirUsuarios()" class="btn-menu btn-excluir-usuarios" style="display: none;">
+                <span><i class="fa-solid fa-user-xmark icon-prefix"></i> Excluir Usuários</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            
+            <!-- Botão Checklists Adm (Visível para Admin e Master) -->
+            <a href="#" onclick="carregarPagina('checklists_adm.html', this)" id="btnChecklistsAdm" class="btn-menu btn-checklists-adm" style="display: none;">
+                <span><i class="fa-solid fa-list-check icon-prefix"></i> Checklists Adm</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+
+            <div class="divider"></div>
+            
+            <a href="login.html" class="btn-menu btn-sair" onclick="localStorage.clear()">
+                <span><i class="fa-solid fa-right-from-bracket"></i> Sair do Sistema</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Área Lateral Principal com a Tela de Boas-Vindas Automática -->
+    <main class="main-viewport">
+        <!-- Tela de Boas-Vindas padrão ao iniciar -->
+        <div id="viewportWelcome" class="viewport-welcome">
+            <h1 style="font-size: clamp(3rem, 5vw, 4.5rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 1.5rem; text-shadow: 0 10px 20px rgba(0,0,0,0.3);">
+                Seja bem-vindo!
+            </h1>
+
+            <div style="margin-bottom: 2rem;">
+                <span style="font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 800; background: linear-gradient(to right, #f59e0b, #fde68a); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    SyncStore
+                </span>
+                <p style="font-size: 0.85rem; color: #94a3b8; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; margin-top: 0.5rem;">
+                    Um novo conceito em gestão
+                </p>
+            </div>
+
+            <div style="width: 90px; height: 4px; background: rgba(245, 158, 11, 0.6); border-radius: 9999px; margin-bottom: 2rem;"></div>
+
+            <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(51, 65, 85, 0.6); backdrop-filter: blur(12px); padding: 1.25rem 2rem; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);">
+                <span style="font-size: 0.7rem; color: #94a3b8; display: block; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 0.3rem;">Usuário Conectado</span>
+                <span id="nomeUsuarioLogado" style="font-size: 1.35rem; font-weight: 700; color: #c7d2fe;">
+                    Carregando...
+                </span>
+            </div>
+        </div>
+
+        <!-- Container do Iframe caso clique em outros menus -->
+        <div id="frameContainer" class="content-frame-container">
+            <iframe id="conteudoIframe" name="conteudoIframe"></iframe>
+        </div>
+    </main>
+    
+    <!-- Modal para Cadastro de Usuários -->
+    <div id="modalUsuario" class="modal-overlay">
+        <div class="modal-content">
+            <h3><i class="fa-solid fa-user-plus" style="color: var(--primary);"></i> Novo Usuário</h3>
+            <form id="formAdminCadastro">
+                <label>Usuário / E-mail:</label>
+                <input type="text" id="novoUsuarioNome" required autocomplete="username" placeholder="Digite o e-mail ou usuário">
+                
+                <label>Senha:</label>
+                <input type="password" id="novoUsuarioSenha" required autocomplete="new-password" placeholder="••••••••">
+                
+                <label>Tipo de Permissão:</label>
+                <select id="novoUsuarioTipo">
+                    <option value="comum">Usuário Comum</option>
+                    <option value="master">Usuário Master</option>
+                    <option value="administrador">Usuário Administrador</option>
+                </select>
+
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancelar" onclick="fecharModalUsuario()">Cancelar</button>
+                    <button type="submit" class="btn-salvar">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Função para abrir/fechar o menu no celular através dos três pontinhos (...)
+        function toggleMenuMobile() {
+            const sidebar = document.getElementById('sidebarMenu');
+            sidebar.classList.toggle('mobile-open');
+        }
+
+        // Função para carregar a página na lateral sem sair do menu
+        function carregarPagina(url, elemento) {
+            event.preventDefault();
+            
+            document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active'));
+            if (elemento) elemento.classList.add('active');
+
+            document.getElementById('viewportWelcome').style.display = 'none';
+            const frameContainer = document.getElementById('frameContainer');
+            frameContainer.style.display = 'block';
+
+            document.getElementById('conteudoIframe').src = url;
+
+            // Se estiver em tela de celular, esconde o menu automaticamente após clicar em uma opção
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebarMenu').classList.remove('mobile-open');
+            }
+        }
+
+        // Configuração inicial ao carregar a página
+        window.addEventListener('DOMContentLoaded', () => {
+            const isMaster = localStorage.getItem('isMaster');
+            const tipoUsuario = (localStorage.getItem('tipoUsuario') || localStorage.getItem('tipo') || localStorage.getItem('permissao') || '').toLowerCase().trim();
+
+            const ehAdministrador = (tipoUsuario === 'administrador' || tipoUsuario === 'admin');
+            const ehMaster = (isMaster === 'true' || tipoUsuario === 'master');
+
+            // Se for Administrador, exibe todos os botões administrativos
+            if (ehAdministrador) {
+                document.getElementById('btnAdminUsuarios').style.display = 'flex';
+                document.getElementById('btnAdminCadastros').style.display = 'flex';
+                document.getElementById('btnExcluirUsuarios').style.display = 'flex';
+                document.getElementById('btnChecklistsAdm').style.display = 'flex';
+            } 
+            // Se for Master, exibe apenas Cadastros e Checklists Adm
+            else if (ehMaster) {
+                document.getElementById('btnAdminCadastros').style.display = 'flex';
+                document.getElementById('btnChecklistsAdm').style.display = 'flex';
+            }
+
+            // Pega o nome do usuário salvo no login
+            const usuarioSalvo = localStorage.getItem('usuarioLogado') || localStorage.getItem('usuario') || 'Paulo Silva';
+            let nomeFormatado = usuarioSalvo;
+
+            // Se o dado salvo for um e-mail, formata para Nome Bonito
+            if (usuarioSalvo.includes('@')) {
+                const partes = usuarioSalvo.split('@')[0].split('.');
+                nomeFormatado = partes.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+            }
+
+            document.getElementById('nomeUsuarioLogado').innerText = nomeFormatado;
+        });
+
+        function abrirModalUsuario() {
+            document.getElementById('modalUsuario').style.display = 'flex';
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebarMenu').classList.remove('mobile-open');
+            }
+        }
+
+        function fecharModalUsuario() {
+            document.getElementById('modalUsuario').style.display = 'none';
+            document.getElementById('formAdminCadastro').reset();
+        }
+
+        function irParaExcluirUsuarios() {
+            carregarPagina('excluir-usuarios.html', document.getElementById('btnExcluirUsuarios'));
+        }
+
+        // Ação de envio do formulário de cadastro dentro do painel
+        document.getElementById('formAdminCadastro').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const usuario = document.getElementById('novoUsuarioNome').value.trim();
+            const senha = document.getElementById('novoUsuarioSenha').value;
+            const tipo = document.getElementById('novoUsuarioTipo').value;
+
+            try {
+                const resposta = await fetch('/api/cadastro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario, senha, tipo })
+                });
+
+                const resultado = await resposta.json();
+                
+                if (resposta.ok && resultado.sucesso) {
+                    alert('Usuário cadastrado com sucesso!');
+                    fecharModalUsuario();
+                } else {
+                    alert(resultado.mensagem || 'Erro ao cadastrar usuário.');
+                }
+            } catch (err) {
+                console.error("Erro no cadastro:", err);
+                alert('Erro de conexão com o servidor.');
+            }
+        });
+    </script>
+
+</body>
+</html>
