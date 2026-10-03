@@ -13,7 +13,7 @@
     },
     {
       "source": "/",
-      "destination": "/chamados.html"
+      "destination": "/index.html"
     }
   ]
 }
