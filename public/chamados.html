@@ -18,7 +18,6 @@
         .status-andamento { color: #fd7e14; font-weight: bold; }
         .status-fechado { color: #28a745; font-weight: bold; }
         
-        /* Estilos de Urgência */
         .urgencia-baixa { color: #28a745; font-weight: bold; }
         .urgencia-media { color: #fd7e14; font-weight: bold; }
         .urgencia-alta { color: #dc3545; font-weight: bold; }
@@ -36,7 +35,6 @@
         .miniatura-foto { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer; border: 1px solid #ccc; }
         .miniatura-foto:hover { opacity: 0.8; }
         
-        /* Modal genérico (Foto e Edição) */
         #modalFoto, #modalEdicao { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
         #modalFoto img { max-width: 90%; max-height: 90%; border-radius: 6px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
         #modalFoto span { position: absolute; top: 20px; right: 30px; color: white; font-size: 35px; font-weight: bold; cursor: pointer; }
@@ -52,7 +50,6 @@
         </div>
     </header>
 
-    <!-- Formulário de Abertura de Chamado -->
     <div class="card">
         <h3>Abrir Novo Chamado</h3>
         <form id="formChamado">
@@ -76,7 +73,6 @@
                 <input type="text" id="inputSetorResponsavel" list="listaSetoresResp" placeholder="Setor Responsável" autocomplete="off">
                 <datalist id="listaSetoresResp"></datalist>
 
-                <!-- Seleção de Urgência -->
                 <select id="inputUrgencia" required style="height: 31px;">
                     <option value="" disabled selected>Selecione a Urgência</option>
                     <option value="Baixa">Baixa</option>
@@ -95,7 +91,6 @@
         </form>
     </div>
 
-    <!-- Listagem e Filtros de Chamados -->
     <div class="card">
         <h3>Lista de Chamados</h3>
         <div class="filtros-container">
@@ -108,7 +103,6 @@
                     <option value="Fechado">Fechados / Resolvidos</option>
                 </select>
             </div>
-
             <div>
                 <label>Filtrar por URGÊNCIA:</label>
                 <select id="filtroUrgencia" onchange="carregarChamados()">
@@ -118,40 +112,33 @@
                     <option value="Alta">Alta</option>
                 </select>
             </div>
-
             <div>
                 <label>Filtrar por Loja:</label>
                 <select id="filtroLoja" onchange="carregarChamados()">
                     <option value="">Todas as Lojas</option>
                 </select>
             </div>
-
             <div>
                 <label>Filtrar por Setor:</label>
                 <select id="filtroSetor" onchange="carregarChamados()">
                     <option value="">Todos os Setores</option>
                 </select>
             </div>
-
             <div>
                 <label>Filtrar por Setor Responsável:</label>
                 <select id="filtroSetorResponsavel" onchange="carregarChamados()">
                     <option value="">Todos os Setores Resp.</option>
                 </select>
             </div>
-
             <div>
                 <label>Filtrar por Responsável:</label>
                 <select id="filtroResponsavel" onchange="carregarChamados()">
                     <option value="">Todos os Responsáveis</option>
                 </select>
             </div>
-
             <div>
                 <label>&nbsp;</label>
-                <button onclick="gerarRelatorioCSV()" style="background-color: #17a2b8;">
-                    Gerar Relatório (CSV)
-                </button>
+                <button onclick="gerarRelatorioCSV()" style="background-color: #17a2b8;">Gerar Relatório (CSV)</button>
             </div>
         </div>
 
@@ -174,18 +161,15 @@
                 </tr>
             </thead>
             <tbody id="tabelaChamados">
-                <!-- Preenchido via JavaScript -->
             </tbody>
         </table>
     </div>
 
-    <!-- Modal para ampliar a foto ao clicar -->
     <div id="modalFoto" onclick="fecharModalFoto()">
         <span onclick="fecharModalFoto()">&times;</span>
         <img id="imgModalAmpliada" src="" alt="Foto Ampliada">
     </div>
 
-    <!-- Modal para Edição da Descrição -->
     <div id="modalEdicao">
         <div class="modal-card">
             <h3>Editar Descrição do Chamado #<span id="editChamadoId"></span></h3>
@@ -213,10 +197,7 @@
             const [ano, mes, dia] = dataPart.split('-');
             const hora = horaPart ? horaPart.substring(0, 8) : '';
 
-            if (ano && mes && dia) {
-                return `${dia}/${mes}/${ano}${hora ? ' ' + hora : ''}`;
-            }
-
+            if (ano && mes && dia) return `${dia}/${mes}/${ano}${hora ? ' ' + hora : ''}`;
             const d = new Date(dataString);
             return isNaN(d) ? dataString : d.toLocaleString('pt-BR');
         }
@@ -237,81 +218,44 @@
                     return;
                 }
             } catch (e) {
-                console.warn("Rota de API de usuário não encontrada, tentando localStorage...");
+                console.warn("Rota de API de usuário não encontrada.");
             }
-
             const usuarioSalvo = localStorage.getItem('usuarioLogado') || sessionStorage.getItem('usuarioLogado');
-            if (usuarioSalvo) {
-                if (elUsuario) elUsuario.textContent = usuarioSalvo;
-            } else {
-                if (elUsuario) elUsuario.textContent = 'paulo.silva@meupontonovo.com.br';
-            }
+            if (elUsuario) elUsuario.textContent = usuarioSalvo || 'paulo.silva@meupontonovo.com.br';
         }
 
         async function carregarSelects() {
             try {
                 const [resLojas, resSetores, resEquip, resResp] = await Promise.all([
-                    fetch('/api/lojas'),
-                    fetch('/api/setores'),
-                    fetch('/api/equipamentos'),
-                    fetch('/api/responsaveis')
+                    fetch('/api/lojas'), fetch('/api/setores'), fetch('/api/equipamentos'), fetch('/api/responsaveis')
                 ]);
 
-                if (resLojas.ok) {
-                    cacheLojas = await resLojas.json();
-                    document.getElementById('listaLojas').innerHTML = cacheLojas
-                        .map(l => `<option value="${extrairNomeItem(l)}">`).join('');
-                    document.getElementById('filtroLoja').innerHTML = '<option value="">Todas as Lojas</option>' + 
-                        cacheLojas.map(l => {
-                            const nome = extrairNomeItem(l);
-                            return `<option value="${nome}">${nome}</option>`;
-                        }).join('');
+                // Verificação de erro para não quebrar a tela se o Vercel falhar
+                if (!resLojas.ok || !resSetores.ok) {
+                    console.error("Erro no Vercel ao carregar listas.");
+                    return;
                 }
 
-                if (resSetores.ok) {
-                    cacheSetores = await resSetores.json();
-                    cacheSetores.sort((a, b) => extrairNomeItem(a).localeCompare(extrairNomeItem(b), 'pt-BR', { sensitivity: 'base' }));
+                cacheLojas = await resLojas.json();
+                document.getElementById('listaLojas').innerHTML = cacheLojas.map(l => `<option value="${extrairNomeItem(l)}">`).join('');
+                document.getElementById('filtroLoja').innerHTML = '<option value="">Todas as Lojas</option>' + cacheLojas.map(l => `<option value="${extrairNomeItem(l)}">${extrairNomeItem(l)}</option>`).join('');
 
-                    const optionsSetores = cacheSetores.map(s => `<option value="${extrairNomeItem(s)}">`).join('');
-                    
-                    document.getElementById('listaSetores').innerHTML = optionsSetores;
-                    document.getElementById('listaSetoresResp').innerHTML = optionsSetores;
+                cacheSetores = await resSetores.json();
+                cacheSetores.sort((a, b) => extrairNomeItem(a).localeCompare(extrairNomeItem(b), 'pt-BR', { sensitivity: 'base' }));
+                const optionsSetores = cacheSetores.map(s => `<option value="${extrairNomeItem(s)}">`).join('');
+                document.getElementById('listaSetores').innerHTML = optionsSetores;
+                document.getElementById('listaSetoresResp').innerHTML = optionsSetores;
+                document.getElementById('filtroSetor').innerHTML = '<option value="">Todos os Setores</option>' + cacheSetores.map(s => `<option value="${extrairNomeItem(s)}">${extrairNomeItem(s)}</option>`).join('');
+                document.getElementById('filtroSetorResponsavel').innerHTML = '<option value="">Todos os Setores Resp.</option>' + cacheSetores.map(s => `<option value="${extrairNomeItem(s)}">${extrairNomeItem(s)}</option>`).join('');
 
-                    const selectSetoresHTML = '<option value="">Todos os Setores</option>' + 
-                        cacheSetores.map(s => {
-                            const nome = extrairNomeItem(s);
-                            return `<option value="${nome}">${nome}</option>`;
-                        }).join('');
+                cacheEquipamentos = await resEquip.json();
+                cacheEquipamentos.sort((a, b) => extrairNomeItem(a).localeCompare(extrairNomeItem(b), 'pt-BR', { sensitivity: 'base' }));
+                document.getElementById('listaEquipamentos').innerHTML = cacheEquipamentos.map(e => `<option value="${extrairNomeItem(e)}">`).join('');
 
-                    document.getElementById('filtroSetor').innerHTML = selectSetoresHTML;
-                    document.getElementById('filtroSetorResponsavel').innerHTML = '<option value="">Todos os Setores Resp.</option>' + 
-                        cacheSetores.map(s => {
-                            const nome = extrairNomeItem(s);
-                            return `<option value="${nome}">${nome}</option>`;
-                        }).join('');
-                }
-
-                if (resEquip.ok) {
-                    cacheEquipamentos = await resEquip.json();
-                    cacheEquipamentos.sort((a, b) => extrairNomeItem(a).localeCompare(extrairNomeItem(b), 'pt-BR', { sensitivity: 'base' }));
-
-                    document.getElementById('listaEquipamentos').innerHTML = cacheEquipamentos
-                        .map(e => `<option value="${extrairNomeItem(e)}">`).join('');
-                }
-
-                if (resResp.ok) {
-                    cacheResponsaveis = await resResp.json();
-                    cacheResponsaveis.sort((a, b) => extrairNomeItem(a).localeCompare(extrairNomeItem(b), 'pt-BR', { sensitivity: 'base' }));
-
-                    document.getElementById('listaResponsaveis').innerHTML = cacheResponsaveis
-                        .map(r => `<option value="${extrairNomeItem(r)}">`).join('');
-                    
-                    document.getElementById('filtroResponsavel').innerHTML = '<option value="">Todos os Responsáveis</option>' + 
-                        cacheResponsaveis.map(r => {
-                            const nome = extrairNomeItem(r);
-                            return `<option value="${nome}">${nome}</option>`;
-                        }).join('');
-                }
+                cacheResponsaveis = await resResp.json();
+                cacheResponsaveis.sort((a, b) => extrairNomeItem(a).localeCompare(extrairNomeItem(b), 'pt-BR', { sensitivity: 'base' }));
+                document.getElementById('listaResponsaveis').innerHTML = cacheResponsaveis.map(r => `<option value="${extrairNomeItem(r)}">`).join('');
+                document.getElementById('filtroResponsavel').innerHTML = '<option value="">Todos os Responsáveis</option>' + cacheResponsaveis.map(r => `<option value="${extrairNomeItem(r)}">${extrairNomeItem(r)}</option>`).join('');
             } catch (e) {
                 console.error("Erro ao carregar selects:", e);
             }
@@ -320,7 +264,6 @@
         function obterIdOuTexto(tipo, nome) {
             if (!nome || !nome.trim()) return '';
             const nomeTratado = nome.trim();
-            
             let cache;
             if (tipo === 'loja') cache = cacheLojas;
             else if (tipo === 'setor' || tipo === 'setor_responsavel') cache = cacheSetores;
@@ -328,19 +271,11 @@
             else if (tipo === 'responsavel') cache = cacheResponsaveis;
 
             const encontrado = (cache || []).find(item => extrairNomeItem(item).trim().toLowerCase() === nomeTratado.toLowerCase());
-            
-            // Alteração crucial para o PostgreSQL: Retornar VAZIO em vez do nome digitado caso não exista na lista,
-            // evitando que o banco de dados crashe ao tentar salvar um texto em uma coluna de ID (número).
             return encontrado && encontrado.id ? encontrado.id : '';
         }
 
         function resolverNomeSetorResponsavel(chamado) {
-            const valorDireto = 
-                chamado.setor_responsavel || 
-                chamado.setorResponsavel || 
-                chamado.setor_responsavel_nome || 
-                chamado.setorResponsavelNome;
-
+            const valorDireto = chamado.setor_responsavel || chamado.setorResponsavel || chamado.setor_responsavel_nome || chamado.setorResponsavelNome;
             if (valorDireto) {
                 if (!isNaN(valorDireto)) {
                     const setorEncontrado = cacheSetores.find(s => String(s.id) === String(valorDireto));
@@ -352,35 +287,15 @@
             return '-';
         }
 
-        function abrirModalFoto(url) {
-            document.getElementById('imgModalAmpliada').src = url;
-            document.getElementById('modalFoto').style.display = 'flex';
-        }
-
-        function fecharModalFoto() {
-            document.getElementById('modalFoto').style.display = 'none';
-        }
-
-        function abrirModalEdicao(id, descricaoAtual) {
-            chamadoEditandoId = id;
-            document.getElementById('editChamadoId').textContent = id;
-            document.getElementById('editDescricaoInput').value = descricaoAtual;
-            document.getElementById('modalEdicao').style.display = 'flex';
-        }
-
-        function fecharModalEdicao() {
-            chamadoEditandoId = null;
-            document.getElementById('modalEdicao').style.display = 'none';
-        }
+        function abrirModalFoto(url) { document.getElementById('imgModalAmpliada').src = url; document.getElementById('modalFoto').style.display = 'flex'; }
+        function fecharModalFoto() { document.getElementById('modalFoto').style.display = 'none'; }
+        function abrirModalEdicao(id, descricaoAtual) { chamadoEditandoId = id; document.getElementById('editChamadoId').textContent = id; document.getElementById('editDescricaoInput').value = descricaoAtual; document.getElementById('modalEdicao').style.display = 'flex'; }
+        function fecharModalEdicao() { chamadoEditandoId = null; document.getElementById('modalEdicao').style.display = 'none'; }
 
         async function salvarEdicaoDescricao() {
             if (!chamadoEditandoId) return;
             const novaDescricao = document.getElementById('editDescricaoInput').value.trim();
-
-            if (!novaDescricao) {
-                alert('A descrição não pode ficar vazia.');
-                return;
-            }
+            if (!novaDescricao) { alert('A descrição não pode ficar vazia.'); return; }
 
             try {
                 const res = await fetch(`/api/chamados/${chamadoEditandoId}/descricao`, {
@@ -388,18 +303,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ descricao: novaDescricao })
                 });
-
                 if (res.ok) {
                     alert('Descrição atualizada com sucesso!');
                     fecharModalEdicao();
                     carregarChamados();
-                } else {
-                    alert('Erro ao atualizar a descrição.');
-                }
-            } catch (e) {
-                console.error("Erro ao salvar descrição:", e);
-                alert('Erro de conexão ao salvar.');
-            }
+                } else { alert('Erro ao atualizar a descrição.'); }
+            } catch (e) { alert('Erro de conexão ao salvar.'); }
         }
 
         document.getElementById('formChamado').addEventListener('submit', async (e) => {
@@ -409,12 +318,11 @@
             const inputFile = document.getElementById('fotoChamado');
             const formData = new FormData();
             
-            // Checagem de limite de tamanho de imagem para o Vercel (4.5 MB)
             if (inputFile.files.length > 0) {
                 const tamanhoEmMB = inputFile.files[0].size / (1024 * 1024);
                 if (tamanhoEmMB > 4.5) {
-                    alert('ERRO: A foto selecionada é muito pesada (maior que 4.5 MB). O servidor não suporta arquivos tão grandes. Reduza a qualidade da imagem ou escolha outra menor.');
-                    return; // Para o envio antes de dar erro no servidor
+                    alert('ERRO: A foto selecionada é muito pesada (maior que 4.5 MB). Escolha uma imagem menor.');
+                    return; 
                 }
                 formData.append('foto', inputFile.files[0]);
             }
@@ -429,10 +337,16 @@
             formData.append('criado_por', usuarioCriador);
 
             try {
-                const res = await fetch('/api/chamados', {
-                    method: 'POST',
-                    body: formData
-                });
+                const res = await fetch('/api/chamados', { method: 'POST', body: formData });
+                
+                // MUDANÇA PRINCIPAL: Verifica se o servidor retornou HTML ao invés de JSON (Erro do Vercel)
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") === -1) {
+                    const erroTexto = await res.text();
+                    console.error("ERRO DO VERCEL/SERVIDOR:", erroTexto);
+                    alert("O servidor Vercel encontrou um erro ao processar seu chamado (Erro 500). Verifique a aba 'Logs' no painel do Vercel para ver o que quebrou no banco de dados.");
+                    return;
+                }
 
                 const resultado = await res.json();
                 if (res.ok && resultado.sucesso) {
@@ -440,17 +354,25 @@
                     document.getElementById('formChamado').reset();
                     carregarChamados();
                 } else {
-                    alert('Erro ao abrir o chamado: ' + (resultado.erro || 'Verifique se você selecionou os itens corretamente nas listas.'));
+                    alert('Erro ao abrir o chamado: ' + (resultado.erro || 'Verifique as listas.'));
                 }
             } catch (err) {
                 console.error("Erro de conexão:", err);
-                alert('Erro de conexão ao salvar o chamado. Tente sem a foto se o problema persistir.');
+                alert('Erro de conexão ao salvar o chamado.');
             }
         });
 
         async function carregarChamados() {
             try {
                 const res = await fetch('/api/chamados');
+                
+                // Trava de segurança para não tentar ler JSON se der erro 500 no Vercel
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") === -1) {
+                    console.error("O Vercel retornou uma página de erro ao tentar listar chamados.");
+                    return;
+                }
+
                 if (!res.ok) return;
                 const chamados = await res.json();
                 
@@ -472,7 +394,6 @@
 
                     let setorRespNome = resolverNomeSetorResponsavel(c);
                     let urgenciaChamado = c.urgencia || 'Média';
-
                     let passaUrgencia = filtroUrgencia === '' || urgenciaChamado === filtroUrgencia;
                     let passaLoja = filtroLoja === '' || c.loja === filtroLoja;
                     let passaSetor = filtroSetor === '' || c.setor === filtroSetor;
@@ -496,50 +417,20 @@
 
                     const descCurta = c.descricao.length > 50 ? c.descricao.substring(0, 50) + '...' : c.descricao;
                     
-                    let selectUrgenciaHTML = `
-                        <select class="select-tabela" onchange="atualizarUrgencia(${c.id}, this.value)">
-                            <option value="Baixa" ${urgenciaAtual === 'Baixa' ? 'selected' : ''}>Baixa</option>
-                            <option value="Média" ${urgenciaAtual === 'Média' ? 'selected' : ''}>Média</option>
-                            <option value="Alta" ${urgenciaAtual === 'Alta' ? 'selected' : ''}>Alta</option>
-                        </select>
-                    `;
-
-                    let optionsResp = cacheResponsaveis.map(r => {
-                        const nome = extrairNomeItem(r);
-                        return `<option value="${r.id || nome}" ${nome === c.responsavel ? 'selected' : ''}>${nome}</option>`;
-                    }).join('');
+                    let selectUrgenciaHTML = `<select class="select-tabela" onchange="atualizarUrgencia(${c.id}, this.value)"><option value="Baixa" ${urgenciaAtual === 'Baixa' ? 'selected' : ''}>Baixa</option><option value="Média" ${urgenciaAtual === 'Média' ? 'selected' : ''}>Média</option><option value="Alta" ${urgenciaAtual === 'Alta' ? 'selected' : ''}>Alta</option></select>`;
+                    let optionsResp = cacheResponsaveis.map(r => { const nome = extrairNomeItem(r); return `<option value="${r.id || nome}" ${nome === c.responsavel ? 'selected' : ''}>${nome}</option>`; }).join('');
                     let selectResponsavelHTML = `<select class="select-tabela" onchange="atualizarResponsavel(${c.id}, this.value)"><option value="">Selecione...</option>${optionsResp}</select>`;
-
                     let setorRespAtualNome = resolverNomeSetorResponsavel(c);
-                    let optionsSetorResp = cacheSetores.map(s => {
-                        const nome = extrairNomeItem(s);
-                        return `<option value="${s.id || nome}" ${nome === setorRespAtualNome ? 'selected' : ''}>${nome}</option>`;
-                    }).join('');
+                    let optionsSetorResp = cacheSetores.map(s => { const nome = extrairNomeItem(s); return `<option value="${s.id || nome}" ${nome === setorRespAtualNome ? 'selected' : ''}>${nome}</option>`; }).join('');
                     let selectSetorRespHTML = `<select class="select-tabela" onchange="atualizarSetorResponsavel(${c.id}, this.value)"><option value="">Selecione...</option>${optionsSetorResp}</select>`;
 
-                    let colunaFoto = '-';
-                    if (c.foto_url) {
-                        colunaFoto = `<img src="${c.foto_url}" class="miniatura-foto" onclick="abrirModalFoto('${c.foto_url}')" title="Clique para ampliar">`;
-                    }
-
+                    let colunaFoto = c.foto_url ? `<img src="${c.foto_url}" class="miniatura-foto" onclick="abrirModalFoto('${c.foto_url}')" title="Clique para ampliar">` : '-';
                     let botaoEditarDesc = `<button onclick="abrirModalEdicao(${c.id}, \`${c.descricao.replace(/`/g, '\\`')}\`)" style="background-color: #17a2b8; padding: 4px 8px; margin-bottom: 4px;">Editar Desc.</button><br>`;
 
                     let botoesAcao = '';
-                    if (c.status === 'Aberto') {
-                        botoesAcao = `
-                            <button onclick="mudarStatus(${c.id}, 'Em Andamento')" style="background-color: #fd7e14; padding: 4px 8px;">Andamento</button>
-                            <button onclick="mudarStatus(${c.id}, 'Fechado')" style="background-color: #28a745; padding: 4px 8px;">Fechar</button>
-                        `;
-                    } else if (c.status === 'Em Andamento') {
-                        botoesAcao = `
-                            <button onclick="mudarStatus(${c.id}, 'Fechado')" style="background-color: #28a745; padding: 4px 8px;">Fechar</button>
-                            <button onclick="mudarStatus(${c.id}, 'Aberto')" style="background-color: #ffc107; color: black; padding: 4px 8px;">Reabrir</button>
-                        `;
-                    } else {
-                        botoesAcao = `
-                            <button onclick="mudarStatus(${c.id}, 'Aberto')" style="background-color: #ffc107; color: black; padding: 4px 8px;">Reabrir</button>
-                        `;
-                    }
+                    if (c.status === 'Aberto') botoesAcao = `<button onclick="mudarStatus(${c.id}, 'Em Andamento')" style="background-color: #fd7e14; padding: 4px 8px;">Andamento</button><button onclick="mudarStatus(${c.id}, 'Fechado')" style="background-color: #28a745; padding: 4px 8px;">Fechar</button>`;
+                    else if (c.status === 'Em Andamento') botoesAcao = `<button onclick="mudarStatus(${c.id}, 'Fechado')" style="background-color: #28a745; padding: 4px 8px;">Fechar</button><button onclick="mudarStatus(${c.id}, 'Aberto')" style="background-color: #ffc107; color: black; padding: 4px 8px;">Reabrir</button>`;
+                    else botoesAcao = `<button onclick="mudarStatus(${c.id}, 'Aberto')" style="background-color: #ffc107; color: black; padding: 4px 8px;">Reabrir</button>`;
 
                     tr.innerHTML = `
                         <td><span class="chamado-link" onclick="verDetalhes(${c.id})">#${c.id}</span></td>
@@ -557,48 +448,23 @@
                         <td>
                             <div class="acoes-container" style="display: flex; flex-direction: column; align-items: flex-start;">
                                 <div>${botaoEditarDesc}</div>
-                                <div style="display: flex; gap: 4px;">
-                                    ${botoesAcao}
-                                    <button onclick="excluirChamado(${c.id})" style="background-color: #dc3545; padding: 4px 8px;">Excluir</button>
-                                </div>
+                                <div style="display: flex; gap: 4px;">${botoesAcao}<button onclick="excluirChamado(${c.id})" style="background-color: #dc3545; padding: 4px 8px;">Excluir</button></div>
                             </div>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
-            } catch(e) {
-                console.error("Erro ao carregar chamados:", e);
-            }
+            } catch(e) { console.error("Erro ao carregar chamados:", e); }
         }
 
         async function atualizarUrgencia(id, novaUrgencia) {
-            try {
-                await fetch(`/api/chamados/${id}/urgencia`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ urgencia: novaUrgencia })
-                });
-            } catch (e) { console.error("Erro ao atualizar urgência:", e); }
+            try { await fetch(`/api/chamados/${id}/urgencia`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ urgencia: novaUrgencia }) }); } catch (e) {}
         }
-
         async function atualizarResponsavel(id, responsavelId) {
-            try {
-                await fetch(`/api/chamados/${id}/responsavel`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ responsavel_id: responsavelId && !isNaN(responsavelId) ? Number(responsavelId) : null })
-                });
-            } catch (e) { console.error(e); }
+            try { await fetch(`/api/chamados/${id}/responsavel`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ responsavel_id: responsavelId && !isNaN(responsavelId) ? Number(responsavelId) : null }) }); } catch (e) {}
         }
-
         async function atualizarSetorResponsavel(id, setorResponsavelId) {
-            try {
-                await fetch(`/api/chamados/${id}/setor-responsavel`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ setor_responsavel_id: setorResponsavelId && !isNaN(setorResponsavelId) ? Number(setorResponsavelId) : null })
-                });
-            } catch (e) { console.error(e); }
+            try { await fetch(`/api/chamados/${id}/setor-responsavel`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ setor_responsavel_id: setorResponsavelId && !isNaN(setorResponsavelId) ? Number(setorResponsavelId) : null }) }); } catch (e) {}
         }
 
         async function verDetalhes(id) {
@@ -606,98 +472,54 @@
                 const res = await fetch('/api/chamados');
                 const chamados = await res.json();
                 const chamado = chamados.find(c => c.id === id);
-
                 if (!chamado) return alert("Chamado não encontrado.");
 
                 const dataFormatada = formatarDataHora(chamado.data_abertura);
                 const setorRespNome = resolverNomeSetorResponsavel(chamado);
                 const urgenciaChamado = chamado.urgencia || 'Média';
 
-                let detalhesTexto = 
-                    `📋 DETALHES DO CHAMADO #${chamado.id}\n\n` +
-                    `🚨 Urgência: ${urgenciaChamado}\n` +
-                    `📅 Data/Hora: ${dataFormatada}\n` +
-                    `📌 Status: ${chamado.status}\n` +
-                    `👤 Aberto por: ${chamado.criado_por || '-'}\n` +
-                    `🏬 Loja: ${chamado.loja || '-'}\n` +
-                    `🏢 Setor: ${chamado.setor || '-'}\n` +
-                    `⚙️ Equipamento: ${chamado.equipamento || '-'}\n` +
-                    `👤 Responsável: ${chamado.responsavel || '-'}\n` +
-                    `🏢 Setor Responsável: ${setorRespNome}\n\n` +
-                    `💬 Descrição:\n${chamado.descricao}`;
-
+                let detalhesTexto = `📋 DETALHES DO CHAMADO #${chamado.id}\n\n` + `🚨 Urgência: ${urgenciaChamado}\n` + `📅 Data/Hora: ${dataFormatada}\n` + `📌 Status: ${chamado.status}\n` + `👤 Aberto por: ${chamado.criado_por || '-'}\n` + `🏬 Loja: ${chamado.loja || '-'}\n` + `🏢 Setor: ${chamado.setor || '-'}\n` + `⚙️ Equipamento: ${chamado.equipamento || '-'}\n` + `👤 Responsável: ${chamado.responsavel || '-'}\n` + `🏢 Setor Responsável: ${setorRespNome}\n\n` + `💬 Descrição:\n${chamado.descricao}`;
                 alert(detalhesTexto);
-                
-                if (chamado.foto_url) {
-                    if (confirm("Este chamado possui uma foto anexada. Deseja abri-la em tamanho real?")) {
-                        abrirModalFoto(chamado.foto_url);
-                    }
-                }
-            } catch (e) { console.error(e); }
+                if (chamado.foto_url) { if (confirm("Este chamado possui uma foto anexada. Deseja abri-la em tamanho real?")) abrirModalFoto(chamado.foto_url); }
+            } catch (e) {}
         }
 
         async function mudarStatus(id, novoStatus) {
-            await fetch(`/api/chamados/${id}/status`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: novoStatus })
-            });
+            await fetch(`/api/chamados/${id}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: novoStatus }) });
             carregarChamados();
         }
 
         async function excluirChamado(id) {
             if (!confirm(`Deseja excluir o chamado #${id}?`)) return;
             const res = await fetch(`/api/chamados/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                alert('Excluído com sucesso!');
-                carregarChamados();
-            } else {
-                alert('Erro ao excluir.');
-            }
+            if (res.ok) { alert('Excluído com sucesso!'); carregarChamados(); } else { alert('Erro ao excluir.'); }
         }
 
         function gerarRelatorioCSV() {
             const tabela = document.querySelector('table');
             const linhas = tabela.querySelectorAll('tr');
-            
-            if (linhas.length <= 1) {
-                alert('Não há dados disponíveis na tabela para gerar o relatório.');
-                return;
-            }
-
+            if (linhas.length <= 1) { alert('Não há dados disponíveis na tabela para gerar o relatório.'); return; }
             let csvContent = '\uFEFF';
-
             linhas.forEach(linha => {
                 const colunas = linha.querySelectorAll('th, td');
                 const dadosLinha = [];
-
                 colunas.forEach((coluna, index) => {
                     if (index === 1 || index === colunas.length - 1) return;
-
                     let texto = '';
                     const select = coluna.querySelector('select');
-                    
-                    if (select) {
-                        texto = select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : '';
-                    } else {
-                        texto = coluna.innerText || coluna.textContent;
-                    }
-
+                    if (select) texto = select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : '';
+                    else texto = coluna.innerText || coluna.textContent;
                     texto = texto.trim().replace(/"/g, '""');
                     dadosLinha.push(`"${texto}"`);
                 });
-
                 csvContent += dadosLinha.join(';') + '\n';
             });
-
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            
             const dataHoje = new Date().toISOString().slice(0, 10);
             link.setAttribute('href', url);
             link.setAttribute('download', `relatorio_chamados_${dataHoje}.csv`);
-            
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -709,11 +531,7 @@
             carregarChamados();
         }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', inicializarApp);
-        } else {
-            inicializarApp();
-        }
+        if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', inicializarApp); } else { inicializarApp(); }
     </script>
 </body>
 </html>
