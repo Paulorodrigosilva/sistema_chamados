@@ -1,117 +1,572 @@
-<script>
-    // Função para alternar o menu no mobile
-    function toggleMenuMobile() {
-        document.getElementById('sidebarMenu').classList.toggle('mobile-open');
-    }
-
-    // Função para carregar as páginas internas no iframe
-    function carregarPagina(url, elemento) {
-        event.preventDefault();
-        document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active'));
-        if (elemento) elemento.classList.add('active');
-
-        document.getElementById('viewportWelcome').style.display = 'none';
-        const frameContainer = document.getElementById('frameContainer');
-        frameContainer.style.display = 'block';
-        document.getElementById('conteudoIframe').src = url;
-
-        if (window.innerWidth <= 768) {
-            document.getElementById('sidebarMenu').classList.remove('mobile-open');
-        }
-    }
-
-    // Verifica a sessão atual ao carregar a página
-    function verificarSessao() {
-        const usuarioLogado = localStorage.getItem('usuarioLogado');
-        const telaLogin = document.getElementById('telaLoginWrapper');
-
-        if (!usuarioLogado) {
-            telaLogin.style.display = 'flex';
-        } else {
-            telaLogin.style.display = 'none';
-            configurarPermissoesPainel();
-        }
-    }
-
-    // Configura permissões e nome do usuário na tela
-    function configurarPermissoesPainel() {
-        const tipoUsuario = localStorage.getItem('tipoUsuario') || 'comum';
-        const ehAdminOuMaster = (tipoUsuario === 'master' || tipoUsuario === 'administrador');
-
-        if (ehAdminOuMaster) {
-            document.getElementById('btnAdminUsuarios').style.display = 'flex';
-            document.getElementById('btnAdminCadastros').style.display = 'flex';
-            document.getElementById('btnExcluirUsuarios').style.display = 'flex';
-            document.getElementById('btnChecklistsAdm').style.display = 'flex';
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Gestão - SyncStore</title>
+    <!-- Google Fonts & Font Awesome para ícones modernos -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-main: #f1f5f9;
+            --surface: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #10b981;
+            --info: #06b6d4;
+            --warning: #f59e0b;
+            --purple: #8b5cf6;
+            --danger: #ef4444;
+            --radius-lg: 16px;
+            --radius-md: 8px;
+            --radius-sm: 6px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        const usuarioSalvo = localStorage.getItem('usuarioLogado') || 'Paulo Silva';
-        let nomeFormatado = usuarioSalvo;
-
-        if (usuarioSalvo.includes('@')) {
-            const partes = usuarioSalvo.split('@')[0].split('.');
-            nomeFormatado = partes.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
-        document.getElementById('nomeUsuarioLogado').innerText = nomeFormatado;
-    }
-
-    // Validação de Login Direta no Cliente (Sem Backend / Ideal para Vercel)
-    document.getElementById('formLogin').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const usuarioInput = document.getElementById('loginUsuario').value.trim();
-        const senhaInput = document.getElementById('loginSenha').value;
-
-        // DEFINIÇÃO DO USUÁRIO MASTER DIRETO NO CÓDIGO
-        const MASTER_USER = "prodrigosilvacel@gmail.com";
-        const MASTER_PASS = "w18187";
-
-        if (usuarioInput === MASTER_USER && senhaInput === MASTER_PASS) {
-            // Sucesso no login master
-            localStorage.setItem('usuarioLogado', MASTER_USER);
-            localStorage.setItem('tipoUsuario', 'master');
-            localStorage.setItem('isMaster', 'true');
-
-            document.getElementById('telaLoginWrapper').style.display = 'none';
-            configurarPermissoesPainel();
-            document.getElementById('formLogin').reset();
-        } else {
-            // Caso queira adicionar mais usuários hardcoded, pode criar validações extras aqui
-            alert('Usuário ou senha inválidos.');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            position: relative;
         }
-    });
 
-    // Função para sair do sistema (Logout)
-    function fazerLogout() {
-        localStorage.clear();
-        document.getElementById('telaLoginWrapper').style.display = 'flex';
-        document.getElementById('viewportWelcome').style.display = 'flex';
-        document.getElementById('frameContainer').style.display = 'none';
-    }
-
-    function abrirModalUsuario() {
-        document.getElementById('modalUsuario').style.display = 'flex';
-        if (window.innerWidth <= 768) {
-            document.getElementById('sidebarMenu').classList.remove('mobile-open');
+        /* Tela de Login Estilizada sobreposta */
+        #telaLoginWrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background-color: #1a1a2e;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
         }
-    }
 
-    function fecharModalUsuario() {
-        document.getElementById('modalUsuario').style.display = 'none';
-        document.getElementById('formAdminCadastro').reset();
-    }
+        .login-main-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
 
-    function irParaExcluirUsuarios() {
-        carregarPagina('excluir-usuarios.html', document.getElementById('btnExcluirUsuarios'));
-    }
+        .welcome-header { text-align: center; margin-bottom: 25px; }
+        .welcome-header h1 { font-size: 2rem; margin: 0 0 10px 0; color: #ffffff; font-weight: 600; }
+        .syncstore-title { font-size: 2.2rem; font-weight: bold; color: #f39c12; margin: 0 0 8px 0; letter-spacing: 0.5px; }
+        .syncstore-subtitle { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #8c8c9e; margin: 0; }
+        
+        .form-container { 
+            background: #ffffff; 
+            color: #333333;
+            padding: 25px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+        
+        .form-container button { margin-top: 15px; cursor: pointer; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; width: 100%; font-weight: bold; }
+        .form-container button:hover { background-color: #0056b3; }
+        .form-container input { width: 100%; padding: 8px; box-sizing: border-box; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        .form-container h2 { margin-top: 0; color: #333; text-align: center; font-size: 1.3rem; }
+        .form-container label { font-size: 14px; color: #555; display: block; margin-top: 10px; }
 
-    // Cadastro de novos usuários simulado no front (salvando localmente se precisar)
-    document.getElementById('formAdminCadastro').addEventListener('submit', (e) => {
-        e.preventDefault();
-        alert('Usuário cadastrado com sucesso!');
-        fecharModalUsuario();
-    });
+        /* Botão Mobile (...) para abrir o menu */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 100;
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: var(--radius-md);
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
 
-    // Executa ao carregar
-    window.addEventListener('DOMContentLoaded', verificarSessao);
-</script>
+        .mobile-menu-btn:hover { background: var(--primary-hover); }
+
+        /* Sidebar Fixa à Esquerda */
+        .sidebar {
+            width: 270px;
+            background: var(--surface);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            height: 100vh;
+            z-index: 10;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .sidebar-header h2 { font-size: 15px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.025em; }
+        .sidebar-header p { font-size: 11px; color: var(--text-secondary); }
+
+        .nav-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .btn-menu {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 9px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .btn-menu span { display: flex; align-items: center; gap: 8px; }
+        .btn-menu i.icon-prefix { font-size: 14px; width: 18px; text-align: center; }
+        .btn-menu i.fa-chevron-right { font-size: 9px; color: var(--text-secondary); transition: transform 0.2s; }
+
+        .btn-menu:hover, .btn-menu.active {
+            background: #f8fafc;
+            border-color: var(--border-color);
+            color: var(--primary);
+        }
+
+        .btn-menu:hover i.fa-chevron-right, .btn-menu.active i.fa-chevron-right {
+            transform: translateX(3px);
+            color: var(--primary);
+        }
+
+        /* Cores dos ícones */
+        .btn-chamados i.icon-prefix { color: var(--success); }
+        .btn-checklists i.icon-prefix { color: var(--primary); }
+        .btn-os i.icon-prefix { color: var(--info); }
+        .btn-plano i.icon-prefix { color: var(--warning); }
+        .btn-resultados i.icon-prefix { color: var(--success); }
+        .btn-usuarios i.icon-prefix { color: var(--purple); }
+        .btn-cadastros i.icon-prefix { color: var(--text-secondary); }
+        .btn-excluir-usuarios i.icon-prefix { color: var(--danger); }
+        .btn-checklists-adm i.icon-prefix { color: var(--info); }
+
+        .divider { height: 1px; background: var(--border-color); margin: 10px 0; }
+
+        .btn-sair {
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            justify-content: center;
+            font-weight: 600;
+            margin-top: auto;
+        }
+        .btn-sair:hover { background: var(--danger); border-color: var(--danger); color: white; }
+
+        /* Área de Exibição Principal */
+        .main-viewport {
+            flex: 1;
+            height: 100vh;
+            background: var(--bg-main);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .viewport-welcome {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 40px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: white;
+            text-align: center;
+        }
+
+        .content-frame-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        iframe { width: 100%; height: 100%; border: none; background: white; }
+
+        /* Modal Moderno */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 380px;
+            text-align: left;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-content h3 { margin-top: 0; margin-bottom: 16px; font-size: 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+        .modal-content label { display: block; margin-top: 10px; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: var(--text-primary); }
+        .modal-content input, .modal-content select {
+            width: 100%; padding: 8px 12px; font-size: 13px; font-family: inherit;
+            border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+            background: #f8fafc; color: var(--text-primary); outline: none;
+        }
+        .modal-content input:focus, .modal-content select:focus {
+            background: white; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        }
+
+        .modal-buttons { display: flex; gap: 8px; margin-top: 20px; }
+        .btn-salvar, .btn-cancelar {
+            padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; border: none; flex: 1; transition: var(--transition);
+        }
+        .btn-salvar { background-color: var(--primary); color: white; }
+        .btn-salvar:hover { background-color: var(--primary-hover); }
+        .btn-cancelar { background-color: #f1f5f9; color: var(--text-secondary); }
+        .btn-cancelar:hover { background-color: #e2e8f0; }
+
+        @media (max-width: 768px) {
+            .mobile-menu-btn { display: flex; }
+            .sidebar {
+                position: fixed; top: 0; left: 0; height: 100vh;
+                transform: translateX(-100%);
+                box-shadow: 10px 0 30px rgba(0,0,0,0.2);
+            }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .main-viewport { padding-top: 60px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ================= TELA DE LOGIN ================= -->
+    <div id="telaLoginWrapper">
+        <div class="login-main-wrapper">
+            <div class="welcome-header">
+                <h1>Seja bem-vindo!</h1>
+                <div class="syncstore-title">SyncStore</div>
+                <p class="syncstore-subtitle">UM NOVO CONCEITO EM GESTÃO!</p>
+            </div>
+
+            <div class="form-container">
+                <div id="secaoLogin">
+                    <h2>Entrar no Sistema</h2>
+                    <form id="formLogin">
+                        <div>
+                            <label>Usuário:</label>
+                            <input type="text" id="loginUsuario" required autocomplete="username">
+                        </div>
+                        <div>
+                            <label>Senha:</label>
+                            <input type="password" id="loginSenha" required autocomplete="current-password">
+                        </div>
+                        <button type="submit">Entrar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= PAINEL DE GESTÃO / DASHBOARD ================= -->
+    
+    <!-- Botão flutuante para dispositivos móveis -->
+    <button class="mobile-menu-btn" onclick="toggleMenuMobile()" title="Abrir Menu">
+        <i class="fa-solid fa-ellipsis"></i>
+    </button>
+
+    <!-- Sidebar de Navegação -->
+    <aside class="sidebar" id="sidebarMenu">
+        <div class="sidebar-header">
+            <div class="header-icon">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div>
+                <h2>Painel de Gestão</h2>
+                <p>Navegação principal</p>
+            </div>
+        </div>
+        
+        <div class="nav-grid">
+            <a href="#" onclick="carregarPagina('chamados.html', this)" class="btn-menu btn-chamados">
+                <span><i class="fa-solid fa-screwdriver-wrench icon-prefix"></i> Chamados</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            <a href="#" onclick="carregarPagina('checklists.html', this)" class="btn-menu btn-checklists">
+                <span><i class="fa-solid fa-clipboard-check icon-prefix"></i> Checklists</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            <a href="#" onclick="carregarPagina('ordem-servico.html', this)" class="btn-menu btn-os">
+                <span><i class="fa-solid fa-file-lines icon-prefix"></i> Ordens de Serviço (O.S.)</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            <a href="#" onclick="carregarPagina('plano-acao.html', this)" class="btn-menu btn-plano">
+                <span><i class="fa-solid fa-bullseye icon-prefix"></i> Plano de Ação</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            <a href="#" onclick="carregarPagina('resultados.html', this)" class="btn-menu btn-resultados">
+                <span><i class="fa-solid fa-chart-pie icon-prefix"></i> Resultados</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            
+            <button id="btnAdminUsuarios" onclick="abrirModalUsuario()" class="btn-menu btn-usuarios" style="display: none;">
+                <span><i class="fa-solid fa-user-plus icon-prefix"></i> Adicionar Usuário</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            
+            <a href="#" onclick="carregarPagina('cadastros.html', this)" id="btnAdminCadastros" class="btn-menu btn-cadastros" style="display: none;">
+                <span><i class="fa-solid fa-folder-open icon-prefix"></i> Cadastros</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+            
+            <button id="btnExcluirUsuarios" onclick="irParaExcluirUsuarios()" class="btn-menu btn-excluir-usuarios" style="display: none;">
+                <span><i class="fa-solid fa-user-xmark icon-prefix"></i> Excluir Usuários</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            
+            <a href="#" onclick="carregarPagina('checklists_adm.html', this)" id="btnChecklistsAdm" class="btn-menu btn-checklists-adm" style="display: none;">
+                <span><i class="fa-solid fa-list-check icon-prefix"></i> Checklists Adm</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+
+            <div class="divider"></div>
+            
+            <button class="btn-menu btn-sair" onclick="fazerLogout()">
+                <span><i class="fa-solid fa-right-from-bracket"></i> Sair do Sistema</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Área Principal de Exibição -->
+    <main class="main-viewport">
+        <div id="viewportWelcome" class="viewport-welcome">
+            <h1 style="font-size: clamp(3rem, 5vw, 4.5rem); font-weight: 900; letter-spacing: -0.03em; margin-bottom: 1.5rem; text-shadow: 0 10px 20px rgba(0,0,0,0.3);">
+                Seja bem-vindo!
+            </h1>
+
+            <div style="margin-bottom: 2rem;">
+                <span style="font-size: clamp(2rem, 3.5vw, 3rem); font-weight: 800; background: linear-gradient(to right, #f59e0b, #fde68a); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    SyncStore
+                </span>
+                <p style="font-size: 0.85rem; color: #94a3b8; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; margin-top: 0.5rem;">
+                    Um novo conceito em gestão
+                </p>
+            </div>
+
+            <div style="width: 90px; height: 4px; background: rgba(245, 158, 11, 0.6); border-radius: 9999px; margin-bottom: 2rem;"></div>
+
+            <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(51, 65, 85, 0.6); backdrop-filter: blur(12px); padding: 1.25rem 2rem; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);">
+                <span style="font-size: 0.7rem; color: #94a3b8; display: block; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 0.3rem;">Usuário Conectado</span>
+                <span id="nomeUsuarioLogado" style="font-size: 1.35rem; font-weight: 700; color: #c7d2fe;">
+                    Carregando...
+                </span>
+            </div>
+        </div>
+
+        <div id="frameContainer" class="content-frame-container">
+            <iframe id="conteudoIframe" name="conteudoIframe"></iframe>
+        </div>
+    </main>
+    
+    <!-- Modal para Cadastro de Usuários -->
+    <div id="modalUsuario" class="modal-overlay">
+        <div class="modal-content">
+            <h3><i class="fa-solid fa-user-plus" style="color: var(--primary);"></i> Novo Usuário</h3>
+            <form id="formAdminCadastro">
+                <label>Usuário / E-mail:</label>
+                <input type="text" id="novoUsuarioNome" required autocomplete="username" placeholder="Digite o e-mail ou usuário">
+                
+                <label>Senha:</label>
+                <input type="password" id="novoUsuarioSenha" required autocomplete="new-password" placeholder="••••••••">
+                
+                <label>Tipo de Permissão:</label>
+                <select id="novoUsuarioTipo">
+                    <option value="comum">Usuário Comum</option>
+                    <option value="master">Usuário Master</option>
+                    <option value="administrador">Usuário Administrador</option>
+                </select>
+
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancelar" onclick="fecharModalUsuario()">Cancelar</button>
+                    <button type="submit" class="btn-salvar">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= SCRIPTS DE CONTROLE E VALIDAÇÃO MASTER ================= -->
+    <script>
+        function toggleMenuMobile() {
+            document.getElementById('sidebarMenu').classList.toggle('mobile-open');
+        }
+
+        function carregarPagina(url, elemento) {
+            event.preventDefault();
+            document.querySelectorAll('.btn-menu').forEach(btn => btn.classList.remove('active'));
+            if (elemento) elemento.classList.add('active');
+
+            document.getElementById('viewportWelcome').style.display = 'none';
+            const frameContainer = document.getElementById('frameContainer');
+            frameContainer.style.display = 'block';
+            document.getElementById('conteudoIframe').src = url;
+
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebarMenu').classList.remove('mobile-open');
+            }
+        }
+
+        function verificarSessao() {
+            const usuarioLogado = localStorage.getItem('usuarioLogado');
+            const telaLogin = document.getElementById('telaLoginWrapper');
+
+            if (!usuarioLogado) {
+                telaLogin.style.display = 'flex';
+            } else {
+                telaLogin.style.display = 'none';
+                configurarPermissoesPainel();
+            }
+        }
+
+        function configurarPermissoesPainel() {
+            const tipoUsuario = localStorage.getItem('tipoUsuario') || 'comum';
+            const ehAdminOuMaster = (tipoUsuario === 'master' || tipoUsuario === 'administrador');
+
+            if (ehAdminOuMaster) {
+                document.getElementById('btnAdminUsuarios').style.display = 'flex';
+                document.getElementById('btnAdminCadastros').style.display = 'flex';
+                document.getElementById('btnExcluirUsuarios').style.display = 'flex';
+                document.getElementById('btnChecklistsAdm').style.display = 'flex';
+            }
+
+            const usuarioSalvo = localStorage.getItem('usuarioLogado') || 'Paulo Silva';
+            let nomeFormatado = usuarioSalvo;
+
+            if (usuarioSalvo.includes('@')) {
+                const partes = usuarioSalvo.split('@')[0].split('.');
+                nomeFormatado = partes.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+            }
+
+            document.getElementById('nomeUsuarioLogado').innerText = nomeFormatado;
+        }
+
+        // Validação Direta do Usuário Master (Funciona sem backend/banco na Vercel)
+        document.getElementById('formLogin').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const usuarioInput = document.getElementById('loginUsuario').value.trim();
+            const senhaInput = document.getElementById('loginSenha').value;
+
+            // Suas credenciais Master fixadas para rodar perfeitamente no Front-end
+            const MASTER_USER = "prodrigosilvacel@gmail.com";
+            const MASTER_PASS = "w18187";
+
+            if (usuarioInput === MASTER_USER && senhaInput === MASTER_PASS) {
+                localStorage.setItem('usuarioLogado', MASTER_USER);
+                localStorage.setItem('tipoUsuario', 'administrador');
+                localStorage.setItem('isMaster', 'true');
+
+                document.getElementById('telaLoginWrapper').style.display = 'none';
+                configurarPermissoesPainel();
+                document.getElementById('formLogin').reset();
+            } else {
+                alert('Usuário ou senha inválidos.');
+            }
+        });
+
+        function fazerLogout() {
+            localStorage.clear();
+            document.getElementById('telaLoginWrapper').style.display = 'flex';
+            document.getElementById('viewportWelcome').style.display = 'flex';
+            document.getElementById('frameContainer').style.display = 'none';
+        }
+
+        function abrirModalUsuario() {
+            document.getElementById('modalUsuario').style.display = 'flex';
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebarMenu').classList.remove('mobile-open');
+            }
+        }
+
+        function fecharModalUsuario() {
+            document.getElementById('modalUsuario').style.display = 'none';
+            document.getElementById('formAdminCadastro').reset();
+        }
+
+        function irParaExcluirUsuarios() {
+            carregarPagina('excluir-usuarios.html', document.getElementById('btnExcluirUsuarios'));
+        }
+
+        document.getElementById('formAdminCadastro').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('Usuário cadastrado com sucesso!');
+            fecharModalUsuario();
+        });
+
+        window.addEventListener('DOMContentLoaded', verificarSessao);
+    </script>
+</body>
+</html>
