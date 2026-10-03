@@ -3,26 +3,15 @@ process.env.TZ = 'America/Sao_Paulo';
 const express = require('express');
 const { Pool } = require('pg');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 
 const app = express();
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(express.static('public'));
+app.use(express.static('public')); // Mantido caso você sirva seu frontend daqui
 
-// Garante que a pasta de uploads exista
-const uploadDir = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configuração do Multer para salvar fotos
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadDir),
-    filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
-});
+// Configuração do Multer para MEMÓRIA (Vercel não suporta gravação em disco)
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 function getAgoraBrasil() {
@@ -31,9 +20,9 @@ function getAgoraBrasil() {
     return isoString.replace('T', ' ').substring(0, 19);
 }
 
-// Inicializa o banco de dados PostgreSQL
+// Inicializa o banco de dados PostgreSQL usando Variável de Ambiente (Segurança)
 const pool = new Pool({
-    connectionString: 'postgresql://neondb_owner:npg_Z6mkS7nlDAfB@ep-red-bar-b5m8q0tw-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+    connectionString: process.env.DATABASE_URL,
 });
 
 pool.connect((err, client, release) => {
@@ -41,10 +30,10 @@ pool.connect((err, client, release) => {
         return console.error('Erro ao conectar ao banco de dados PostgreSQL:', err.stack);
     }
     console.log('Conectado ao banco de dados PostgreSQL.');
-    release();
+    if (release) release();
 });
 
-// Criação automática de tabelas (Sintaxe PostgreSQL)
+// Criação automática de tabelas
 const initDb = async () => {
     try {
         await pool.query(`CREATE TABLE IF NOT EXISTS usuarios (
@@ -306,7 +295,14 @@ app.delete('/api/responsaveis/:id', async (req, res) => {
 // --- ROTAS DE CHAMADOS ---
 app.post('/api/chamados', upload.single('foto'), async (req, res) => {
     const { descricao, loja_id, setor_id, equipamento_id, responsavel_id, setor_responsavel_id, criado_por, urgencia } = req.body;
-    const fotoUrl = req.file ? '/uploads/' + req.file.filename : null;
+    
+    // Converte a imagem da memória para Base64
+    let fotoUrl = null;
+    if (req.file) {
+        const base64Data = req.file.buffer.toString('base64');
+        fotoUrl = `data:${req.file.mimetype};base64,${base64Data}`;
+    }
+
     const dataAtualLocal = getAgoraBrasil();
     const nivelUrgencia = urgencia || 'Baixa';
 
@@ -338,7 +334,6 @@ app.get('/api/chamados', async (req, res) => {
         const { rows } = await pool.query(query);
         const ajustados = rows.map(row => {
             if (row.data_abertura) {
-                // PostgreSQL retorna Date object para TIMESTAMP
                 const dt = new Date(row.data_abertura);
                 if (!isNaN(dt.getTime())) {
                     row.data_abertura = dt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -549,11 +544,12 @@ app.patch('/api/checklist-itens/:id/toggle', async (req, res) => {
 app.post('/api/checklist-itens/:id/foto', upload.array('fotos'), async (req, res) => {
     const itemId = req.params.id;
 
+    // Converte imagens da memória para Base64
     let novosArquivos = [];
     if (req.files && req.files.length > 0) {
-        novosArquivos = req.files.map(f => '/uploads/' + f.filename);
+        novosArquivos = req.files.map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
     } else if (req.file) {
-        novosArquivos = ['/uploads/' + req.file.filename];
+        novosArquivos = [`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`];
     }
 
     if (novosArquivos.length === 0) {
@@ -585,7 +581,6 @@ app.post('/api/checklist-itens/:id/foto', upload.array('fotos'), async (req, res
 app.delete('/api/checklists/:id', async (req, res) => {
     try {
         await pool.query(`DELETE FROM checklists WHERE id = $1`, [req.params.id]);
-        // A exclusão dos itens ocorrerá automaticamente pelo ON DELETE CASCADE configurado na criação da tabela
         return res.json({ sucesso: true });
     } catch (err) {
         return res.status(500).json({ sucesso: false, erro: err.message });
@@ -634,6 +629,10 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-app.listen(3000, () => {
-    console.log('Servidor rodando na porta 3000');
-});
+// Exporta o app para o Vercel Serverless Functions
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(3000, () => {
+        console.log('Servidor rodando na porta 3000 localmente');
+    });
+}
+module.exports = app;
