@@ -3,8 +3,12 @@ process.env.TZ = 'America/Sao_Paulo';
 const express = require('express');
 const { Pool } = require('pg');
 const multer = require('multer');
+const cors = require('cors'); // <-- NECESSÁRIO PARA LIBERAR O NAVEGADOR
 
 const app = express();
+
+// Ativa o CORS para evitar bloqueios de requisição na Vercel
+app.use(cors());
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -251,7 +255,6 @@ app.patch('/api/chamados/:id/:campo', async (req, res) => {
     
     if (!camposPermitidos.includes(campo)) return res.status(400).json({ erro: "Campo inválido" });
     
-    // Pegando o valor do corpo dinamicamente. Para 'responsavel_id' o body também precisa mandar essa chave.
     const valor = req.body[campo] || req.body.status || req.body.urgencia; 
 
     try {
