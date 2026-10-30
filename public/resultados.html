@@ -236,35 +236,10 @@
 
         document.getElementById('usuarioLogado').innerText = usuarioLogado;
 
-        function carregarDados() {
-            const request = indexedDB.open('BancoOSDB', 1);
-
-            request.onerror = function() {
-                console.error("Erro ao abrir banco de dados.");
-                renderizarTabela([]);
-            };
-
-            request.onsuccess = function(event) {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains('ordens')) {
-                    processarDados([], []);
-                    return;
-                }
-
-                const transaction = db.transaction(['ordens'], 'readonly');
-                const store = transaction.objectStore('ordens');
-                const reqAll = store.getAll();
-
-                reqAll.onsuccess = function(e) {
-                    const listaOS = e.target.result || [];
-                    processarDados(listaOS, []);
-                };
-            };
-        }
-
-        async function processarDados(listaOS, planosAcaoExtras) {
+        async function carregarDados() {
             dadosGlobais = [];
 
+            // 1. Busca Chamados direto da API do servidor (PostgreSQL)
             try {
                 const res = await fetch('/api/chamados');
                 const resChamados = await res.json();
@@ -300,11 +275,169 @@
                 console.error("Erro ao buscar chamados:", e);
             }
 
-            listaOS.forEach(os => {
-                dadosGlobais.push({
-                    tipo: 'Ordem de Serviço',
-                    identificacao: `OS #${os.id}`,
-                    loja: os.cliente || '-',
-                    equipamento: os.equipamento || '-',
-                    descricao: os.defeito || '-',
-                    titulo:
+            // 2. Busca Ordens de Serviço direto da API do servidor (PostgreSQL)
+            try {
+                const resOS = await fetch('/api/ordens-servico');
+                const listaOS = await resOS.json();
+
+                (listaOS || []).forEach(os => {
+                    let dataFormatadaOS = '-';
+                    if (os.data_abertura) {
+                        const dt = new Date(os.data_abertura);
+                        if (!isNaN(dt.getTime())) {
+                            dataFormatadaOS = dt.toLocaleDateString('pt-BR');
+                        } else {
+                            dataFormatadaOS = os.dataAbertura || '-';
+                        }
+                    }
+
+                    dadosGlobais.push({
+                        tipo: 'Ordem de Serviço',
+                        identificacao: `OS #${os.id}`,
+                        loja: os.cliente || '-',
+                        equipamento: os.equipamento || '-',
+                        descricao: os.defeito || '-',
+                        titulo: `OS #${os.id} - ${os.cliente || 'Cliente'}`,
+                        detalhes: `Equipamento: ${os.equipamento || '-'} | Defeito: ${os.defeito || '-'}`,
+                        responsavel: os.tecnico || 'Não atribuído',
+                        status: os.status || 'Aberta',
+                        data: dataFormatadaOS
+                    });
+                });
+            } catch (e) {
+                console.error("Erro ao buscar ordens de serviço:", e);
+            }
+
+            // 3. Busca Planos de Ação do localStorage
+            const planosSalvos = localStorage.getItem('planosAcao');
+            if (planosSalvos) {
+                try {
+                    const listaPlanos = JSON.parse(planosSalvos);
+                    listaPlanos.forEach(p => {
+                        const totalTarefas = p.tarefas ? p.tarefas.length : 0;
+                        const tarefasConcluidas = p.tarefas ? p.tarefas.filter(t => t.concluido).length : 0;
+                        const statusPlano = (totalTarefas > 0 && tarefasConcluidas === totalTarefas) ? 'Concluído' : 'Aberto';
+
+                        dadosGlobais.push({
+                            tipo: 'Plano de Ação',
+                            identificacao: `Plano #${p.id || 'Geral'}`,
+                            loja: '-',
+                            equipamento: '-',
+                            descricao: p.objetivo || '-',
+                            titulo: p.titulo || 'Plano de Ação',
+                            detalhes: `Objetivo: ${p.objetivo || '-'} (Etapas: ${tarefasConcluidas}/${totalTarefas})`,
+                            responsavel: p.responsavelGeral || p.criadoPor || 'Sistema',
+                            status: statusPlano,
+                            data: p.dataCriacao || '-'
+                        });
+                    });
+                } catch(err) {}
+            }
+
+            atualizarCards(dadosGlobais);
+            renderizarTabela(dadosGlobais);
+        }
+
+        function atualizarCards(dados) {
+            document.getElementById('totalRegistros').innerText = dados.length;
+            
+            document.getElementById('totalConcluidos').innerText = dados.filter(d => {
+                const s = d.status.toLowerCase();
+                return s.includes('concluído') || s.includes('concluída') || s.includes('finalizado');
+            }).length;
+
+            document.getElementById('totalAbertos').innerText = dados.filter(d => {
+                const s = d.status.toLowerCase();
+                return s.includes('aberto') || s.includes('aber') || s.includes('andamento');
+            }).length;
+
+            document.getElementById('totalChamados').innerText = dados.filter(d => d.tipo === 'Chamado' || d.tipo === 'Ordem de Serviço').length;
+        }
+
+        function renderizarTabela(dadosFiltrados) {
+            dadosFiltradosAtuais = dadosFiltrados; 
+            const tbody = document.getElementById('tabelaResultados');
+            tbody.innerHTML = '';
+
+            const tipoFiltro = document.getElementById('filtroTipo').value;
+            const statusFiltro = document.getElementById('filtroStatus').value;
+            const textoBusca = document.getElementById('filtroBusca').value;
+
+            let descFiltro = tipoFiltro ? tipoFiltro : "Todos os Tipos";
+            if (statusFiltro) descFiltro += ` | Status: ${statusFiltro}`;
+            if (textoBusca) descFiltro += ` | Busca: "${textoBusca}"`;
+            document.getElementById('textoFiltroAtivo').innerText = descFiltro;
+
+            const qtdTotal = dadosFiltrados.length;
+            const qtdConcluidos = dadosFiltrados.filter(d => {
+                const s = d.status.toLowerCase();
+                return s.includes('concluído') || s.includes('concluída') || s.includes('finalizado');
+            }).length;
+            const qtdAbertos = dadosFiltrados.filter(d => {
+                const s = d.status.toLowerCase();
+                return s.includes('aberto') || s.includes('aber') || s.includes('andamento');
+            }).length;
+            const qtdCancelados = dadosFiltrados.filter(d => {
+                const s = d.status.toLowerCase();
+                return s.includes('cancelada');
+            }).length;
+
+            document.getElementById('qtdTotalFiltro').innerText = qtdTotal;
+            document.getElementById('qtdConcluidosFiltro').innerText = qtdConcluidos;
+            document.getElementById('qtdAbertosFiltro').innerText = qtdAbertos;
+            document.getElementById('qtdCanceladosFiltro').innerText = qtdCancelados;
+
+            if (dadosFiltrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Nenhum registro encontrado no histórico.</td></tr>`;
+                return;
+            }
+
+            dadosFiltrados.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                let badgeTipo = 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25';
+                if (item.tipo === 'Plano de Ação') {
+                    badgeTipo = 'bg-info bg-opacity-10 text-info border border-info border-opacity-25';
+                } else if (item.tipo === 'Ordem de Serviço') {
+                    badgeTipo = 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25';
+                }
+
+                const statusLower = item.status.toLowerCase();
+                let badgeStatus = 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25';
+                if (statusLower.includes('concluído') || statusLower.includes('concluída') || statusLower.includes('finalizado')) {
+                    badgeStatus = 'bg-success bg-opacity-10 text-success border border-success border-opacity-25';
+                } else if (statusLower.includes('cancelada')) {
+                    badgeStatus = 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25';
+                } else if (statusLower.includes('andamento')) {
+                    badgeStatus = 'bg-info bg-opacity-10 text-info border border-info border-opacity-25';
+                }
+
+                tr.innerHTML = `
+                    <td><span class="badge px-2 py-1 ${badgeTipo}">${item.tipo}</span></td>
+                    <td class="fw-semibold text-dark">${item.titulo}</td>
+                    <td class="text-muted small">${item.detalhes}</td>
+                    <td>${item.responsavel}</td>
+                    <td><span class="badge px-2 py-1 ${badgeStatus}">${item.status}</span></td>
+                    <td class="text-muted">${item.data}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filtrarTabela() {
+            const tipoFiltro = document.getElementById('filtroTipo').value;
+            const statusFiltro = document.getElementById('filtroStatus').value.toLowerCase();
+            const textoBusca = document.getElementById('filtroBusca').value.toLowerCase();
+
+            const filtrados = dadosGlobais.filter(item => {
+                const matchTipo = !tipoFiltro || item.tipo === tipoFiltro;
+                
+                const statusItem = item.status.toLowerCase();
+                let matchStatus = true;
+                if (statusFiltro) {
+                    if (statusFiltro === 'aberto') {
+                        matchStatus = statusItem.includes('aberto') || statusItem.includes('aber') || statusItem.includes('andamento');
+                    } else if (statusFiltro === 'concluído') {
+                        matchStatus = statusItem.includes('concluído') || statusItem.includes('concluída') || statusItem.includes('finalizado');
+                    } else {
+                        matchStatus =
