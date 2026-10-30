@@ -40,7 +40,7 @@ pool.connect((err, client, release) => {
     if (release) release();
 });
 
-// Criação automática de tabelas
+// Criação automática de tabelas (Incluindo Ordens de Serviço)
 const initDb = async () => {
     try {
         await pool.query(`CREATE TABLE IF NOT EXISTS usuarios (
@@ -66,6 +66,18 @@ const initDb = async () => {
             foto TEXT,
             urgencia TEXT DEFAULT 'Baixa',
             status TEXT DEFAULT 'Aberto',
+            data_abertura TIMESTAMP
+        )`);
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS ordens_servico (
+            id SERIAL PRIMARY KEY,
+            cliente TEXT,
+            equipamento TEXT,
+            prioridade TEXT DEFAULT 'Média',
+            tecnico TEXT,
+            defeito TEXT,
+            laudo TEXT,
+            status TEXT DEFAULT 'Aberta',
             data_abertura TIMESTAMP
         )`);
 
@@ -193,7 +205,7 @@ criarRotaApoio('/api/setores', 'setores');
 criarRotaApoio('/api/equipamentos', 'equipamentos');
 criarRotaApoio('/api/responsaveis', 'responsaveis');
 
-// --- ROTAS DE CHAMADOS (Com conversão segura de IDs) ---
+// --- ROTAS DE CHAMADOS (Com conversão e suporte seguro) ---
 app.post('/api/chamados', upload.single('foto'), async (req, res) => {
     let { descricao, loja_id, setor_id, equipamento_id, responsavel_id, setor_responsavel_id, criado_por, urgencia } = req.body;
     
@@ -293,6 +305,69 @@ app.delete('/api/chamados/:id', async (req, res) => {
         return res.json({ sucesso: true, mensagem: "Chamado excluído com sucesso!" });
     } catch (err) {
         return res.status(500).json({ sucesso: false, mensagem: err.message });
+    }
+});
+
+// --- ROTAS DE ORDENS DE SERVIÇO (O.S.) ---
+app.post('/api/ordens-servico', async (req, res) => {
+    const { cliente, equipamento, prioridade, tecnico, defeito } = req.body;
+    const dataAtualLocal = getAgoraBrasil();
+
+    const query = `INSERT INTO ordens_servico 
+        (cliente, equipamento, prioridade, tecnico, defeito, status, data_abertura) 
+        VALUES ($1, $2, $3, $4, $5, 'Aberta', $6) RETURNING id`;
+    
+    try {
+        const { rows } = await pool.query(query, [
+            cliente || 'Não informado',
+            equipamento || 'Não informado',
+            prioridade || 'Média',
+            tecnico || 'Sistema',
+            defeito || 'Sem descrição',
+            dataAtualLocal
+        ]);
+        return res.json({ sucesso: true, id: rows[0].id, mensagem: "Ordem de Serviço aberta com sucesso!" });
+    } catch (err) {
+        console.error("Erro ao inserir O.S.:", err.message);
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.get('/api/ordens-servico', async (req, res) => {
+    const query = `SELECT * FROM ordens_servico ORDER BY data_abertura DESC`;
+    try {
+        const { rows } = await pool.query(query);
+        const ajustados = rows.map(row => {
+            if (row.data_abertura) {
+                const dt = new Date(row.data_abertura);
+                if (!isNaN(dt.getTime())) {
+                    row.data_abertura = dt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                }
+            }
+            return row;
+        });
+        return res.json(ajustados);
+    } catch (err) {
+        return res.status(500).json({ erro: err.message });
+    }
+});
+
+app.patch('/api/ordens-servico/:id/status', async (req, res) => {
+    try {
+        const { status, laudo } = req.body;
+        await pool.query(`UPDATE ordens_servico SET status = $1, laudo = COALESCE($2, laudo) WHERE id = $3`, [status, laudo, req.params.id]);
+        return res.json({ sucesso: true, mensagem: "Status atualizado com sucesso!" });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.delete('/api/ordens-servico/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM ordens_servico WHERE id = $1', [req.params.id]);
+        return res.json({ sucesso: true, mensagem: "Ordem de Serviço excluída com sucesso!" });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
@@ -496,7 +571,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ sucesso: false, mensagem: "Usuário ou senha inválidos." });
         }
     } catch (err) {
-        return res.status(500).json({ sucesso: false, mensagem: "Erro interno no servidor." });
+        return res.status(500).json({ sucesso: false, erro: "Erro interno no servidor." });
     }
 });
 
