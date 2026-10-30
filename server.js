@@ -410,4 +410,221 @@ app.get('/api/planos-acao', async (req, res) => {
 
 app.put('/api/planos-acao/:id', async (req, res) => {
     const { id } = req.params;
-    const { titulo, descricao, responsavel, tarefas, status }
+    const { titulo, descricao, responsavel, tarefas, status } = req.body;
+
+    try {
+        await pool.query(
+            `UPDATE planos_acao SET titulo = $1, descricao = $2, responsavel = $3, tarefas = $4, status = $5 WHERE id = $6`,
+            [titulo, descricao, responsavel, JSON.stringify(tarefas || []), status, id]
+        );
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.patch('/api/planos-acao/:id/status', async (req, res) => {
+    try {
+        await pool.query(`UPDATE planos_acao SET status = $1 WHERE id = $2`, [req.body.status, req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.delete('/api/planos-acao/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM planos_acao WHERE id = $1', [req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+// --- ROTAS DE CHECKLISTS ---
+app.post('/api/checklists', async (req, res) => {
+    const { titulo, responsavel, itens, dias = 1, usuario } = req.body;
+    if (!titulo || !itens || itens.length === 0) {
+        return res.status(400).json({ sucesso: false, mensagem: "Título e itens são obrigatórios." });
+    }
+
+    const totalCriar = parseInt(dias) || 1;
+    const dataAtualLocal = getAgoraBrasil();
+
+    try {
+        for (let i = 0; i < totalCriar; i++) {
+            const dataAlvo = new Date();
+            dataAlvo.setDate(dataAlvo.getDate() + i);
+            const dataFormatada = dataAlvo.toLocaleDateString('pt-BR');
+            const tituloFinal = totalCriar > 1 ? `${titulo} (${dataFormatada})` : titulo;
+
+            const { rows } = await pool.query(
+                `INSERT INTO checklists (titulo, responsavel, criado_por, data_criacao) VALUES ($1, $2, $3, $4) RETURNING id`, 
+                [tituloFinal, responsavel || 'Não definido', usuario || 'Desconhecido', dataAtualLocal]
+            );
+            
+            const checklistId = rows[0].id;
+            for (const item of itens) {
+                await pool.query(`INSERT INTO checklist_itens (checklist_id, descricao) VALUES ($1, $2)`, [checklistId, item]); 
+            } 
+        } 
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+function formatarItensComFotos(itens) {
+    return itens.map(item => {
+        let fotosArray = [];
+        if (item.fotos) {
+            if (Array.isArray(item.fotos)) {
+                fotosArray = item.fotos;
+            } else {
+                try {
+                    const parsed = JSON.parse(item.fotos);
+                    if (Array.isArray(parsed)) fotosArray = parsed;
+                    else if (parsed) fotosArray = [parsed];
+                } catch (e) { fotosArray = [item.fotos]; }
+            }
+        }
+        return { ...item, fotos: fotosArray };
+    });
+}
+
+app.get('/api/checklists', async (req, res) => {
+    try {
+        const { rows: checklists } = await pool.query(`SELECT id, titulo, responsavel, criado_por, concluido_por, data_criacao FROM checklists ORDER BY id DESC`);
+        if (!checklists || checklists.length === 0) return res.json([]);
+
+        const resultados = await Promise.all(checklists.map(async (cl) => {
+            const { rows: itens } = await pool.query(`SELECT * FROM checklist_itens WHERE checklist_id = $1`, [cl.id]);
+            return { ...cl, itens: formatarItensComFotos(itens || []) };
+        }));
+
+        return res.json(resultados);
+    } catch (err) {
+        return res.status(500).json({ erro: err.message });
+    }
+});
+
+app.get('/api/checklists/:id', async (req, res) => {
+    try {
+        const { rows: checklistRows } = await pool.query(`SELECT * FROM checklists WHERE id = $1`, [req.params.id]);
+        if (checklistRows.length === 0) return res.status(404).json({ sucesso: false, erro: "Checklist não encontrado" });
+        
+        const checklist = checklistRows[0];
+        const { rows: itens } = await pool.query(`SELECT * FROM checklist_itens WHERE checklist_id = $1`, [req.params.id]);
+        
+        return res.json({ ...checklist, itens: formatarItensComFotos(itens || []) });
+    } catch (err) {
+        return res.status(500).json({ erro: err.message });
+    }
+});
+
+app.patch('/api/checklists/:id/concluir', async (req, res) => {
+    try {
+        await pool.query(`UPDATE checklists SET concluido_por = $1 WHERE id = $2`, [req.body.usuario, req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.delete('/api/checklists/:id', async (req, res) => {
+    try {
+        await pool.query(`DELETE FROM checklists WHERE id = $1`, [req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+// --- ROTAS PARA OS ITENS DO CHECKLIST ---
+app.patch('/api/checklist-itens/:id/status', async (req, res) => {
+    try {
+        await pool.query(`UPDATE checklist_itens SET status = $1 WHERE id = $2`, [req.body.status, req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.patch('/api/checklist-itens/:id/observacao', async (req, res) => {
+    try {
+        await pool.query(`UPDATE checklist_itens SET observacao = $1 WHERE id = $2`, [req.body.observacao, req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.post('/api/checklist-itens/:id/foto', upload.array('fotos'), async (req, res) => {
+    const itemId = req.params.id;
+    let novosArquivos = [];
+    if (req.files && req.files.length > 0) {
+        novosArquivos = req.files.map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
+    } else if (req.file) {
+        novosArquivos = [`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`];
+    }
+
+    if (novosArquivos.length === 0) {
+        return res.status(400).json({ sucesso: false, mensagem: "Nenhuma foto enviada." });
+    }
+
+    try {
+        const { rows } = await pool.query(`SELECT fotos FROM checklist_itens WHERE id = $1`, [itemId]);
+        const row = rows[0];
+        let listaAtual = [];
+        if (row && row.fotos) {
+            try {
+                const parsed = JSON.parse(row.fotos);
+                if (Array.isArray(parsed)) listaAtual = parsed;
+                else if (parsed) listaAtual = [parsed];
+            } catch (e) { listaAtual = [row.fotos]; }
+        }
+
+        const listaFinal = [...listaAtual, ...novosArquivos];
+        await pool.query(`UPDATE checklist_itens SET fotos = $1 WHERE id = $2`, [JSON.stringify(listaFinal), itemId]);
+        return res.json({ sucesso: true, fotos: listaFinal });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+// --- AUTENTICAÇÃO E LOGIN ---
+app.post('/api/login', async (req, res) => {
+    const usuarioParaBuscar = (req.body.usuario || '').trim().toLowerCase();
+    const senha = req.body.senha;
+
+    if (!usuarioParaBuscar || !senha) {
+        return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
+    }
+
+    try {
+        const { rows } = await pool.query(
+            `SELECT * FROM usuarios WHERE LOWER(TRIM(usuario)) = $1 AND senha = $2`, 
+            [usuarioParaBuscar, senha]
+        );
+        
+        if (rows[0]) {
+            const user = rows[0];
+            if (user.validado !== true) {
+                return res.status(403).json({ sucesso: false, mensagem: "Sua conta ainda não foi validada pelo usuário Master." });
+            }
+            return res.json({ sucesso: true, usuario: user.usuario, tipo: user.tipo || 'comum' });
+        } else {
+            return res.status(401).json({ sucesso: false, mensagem: "Usuário ou senha inválidos." });
+        }
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, mensagem: "Erro interno no servidor." });
+    }
+});
+
+// Exporta o app para o Vercel Serverless Functions
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(3000, () => {
+        console.log('Servidor rodando na porta 3000 localmente');
+    });
+}
+module.exports = app;
