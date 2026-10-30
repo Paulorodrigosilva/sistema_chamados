@@ -40,7 +40,7 @@ pool.connect((err, client, release) => {
     if (release) release();
 });
 
-// Criação automática de tabelas (Incluindo Ordens de Serviço)
+// Criação automática de tabelas
 const initDb = async () => {
     try {
         await pool.query(`CREATE TABLE IF NOT EXISTS usuarios (
@@ -115,7 +115,7 @@ app.get('/', (req, res) => {
 // --- ROTAS DE CADASTRO E GERENCIAMENTO DE USUÁRIOS ---
 app.post('/api/usuarios', async (req, res) => {
     const { nome, senha, tipo } = req.body;
-    const usuarioParaSalvar = (nome || req.body.usuario || '').trim();
+    const usuarioParaSalvar = (nome || req.body.usuario || '').trim().toLowerCase();
     const tipoUsuario = (tipo || 'comum').trim();
 
     if (!usuarioParaSalvar || !senha) {
@@ -126,7 +126,7 @@ app.post('/api/usuarios', async (req, res) => {
         await pool.query(`INSERT INTO usuarios (usuario, senha, tipo) VALUES ($1, $2, $3)`, [usuarioParaSalvar, senha, tipoUsuario]);
         return res.json({ sucesso: true, mensagem: "Usuário cadastrado com sucesso!" });
     } catch (err) {
-        return res.status(400).json({ sucesso: false, mensagem: "Erro ao cadastrar usuário." });
+        return res.status(400).json({ sucesso: false, mensagem: "Erro ao cadastrar usuário (já existente ou inválido)." });
     }
 });
 
@@ -143,7 +143,7 @@ app.put('/api/usuarios/:id', async (req, res) => {
     const { id } = req.params;
     const { usuario, tipo } = req.body;
     try {
-        const { rowCount } = await pool.query(`UPDATE usuarios SET usuario = $1, tipo = $2 WHERE id = $3`, [usuario.trim(), tipo.trim(), id]);
+        const { rowCount } = await pool.query(`UPDATE usuarios SET usuario = $1, tipo = $2 WHERE id = $3`, [usuario.trim().toLowerCase(), tipo.trim(), id]);
         if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado." });
         return res.json({ sucesso: true, mensagem: "Usuário atualizado com sucesso!" });
     } catch (err) {
@@ -168,7 +168,7 @@ const criarRotaApoio = (caminho, tabela) => {
             const { rows } = await pool.query(`INSERT INTO ${tabela} (nome) VALUES ($1) RETURNING id`, [req.body.nome]);
             return res.json({ sucesso: true, id: rows[0].id });
         } catch (err) {
-            return res.status(500).json({ sucesso: false, erro: err.message });
+            return res.status(500).json({ sucesso: false, sucesso: false, erro: err.message });
         }
     });
 
@@ -205,7 +205,7 @@ criarRotaApoio('/api/setores', 'setores');
 criarRotaApoio('/api/equipamentos', 'equipamentos');
 criarRotaApoio('/api/responsaveis', 'responsaveis');
 
-// --- ROTAS DE CHAMADOS (Com conversão e suporte seguro) ---
+// --- ROTAS DE CHAMADOS ---
 app.post('/api/chamados', upload.single('foto'), async (req, res) => {
     let { descricao, loja_id, setor_id, equipamento_id, responsavel_id, setor_responsavel_id, criado_por, urgencia } = req.body;
     
@@ -217,7 +217,6 @@ app.post('/api/chamados', upload.single('foto'), async (req, res) => {
 
     const dataAtualLocal = getAgoraBrasil();
     const nivelUrgencia = urgencia || 'Baixa';
-
     const parseId = (val) => (!val || isNaN(val)) ? null : parseInt(val);
 
     const query = `INSERT INTO chamados 
@@ -269,7 +268,7 @@ app.get('/api/chamados', async (req, res) => {
         });
         return res.json(ajustados);
     } catch (err) {
-        return res.status(500).json({ erro: err.message });
+        return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
@@ -287,7 +286,7 @@ app.patch('/api/chamados/:id/:campo', async (req, res) => {
     const camposPermitidos = ['status', 'urgencia', 'responsavel_id', 'setor_responsavel_id'];
     const { campo } = req.params;
     
-    if (!camposPermitidos.includes(campo)) return res.status(400).json({ erro: "Campo inválido" });
+    if (!camposPermitidos.includes(campo)) return res.status(400).json({ sucesso: false, erro: "Campo inválido" });
     
     const valor = req.body[campo] || req.body.status || req.body.urgencia; 
 
@@ -304,7 +303,7 @@ app.delete('/api/chamados/:id', async (req, res) => {
         await pool.query('DELETE FROM chamados WHERE id = $1', [req.params.id]);
         return res.json({ sucesso: true, mensagem: "Chamado excluído com sucesso!" });
     } catch (err) {
-        return res.status(500).json({ sucesso: false, mensagem: err.message });
+        return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
@@ -348,7 +347,7 @@ app.get('/api/ordens-servico', async (req, res) => {
         });
         return res.json(ajustados);
     } catch (err) {
-        return res.status(500).json({ erro: err.message });
+        return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
@@ -437,14 +436,14 @@ app.get('/api/checklists', async (req, res) => {
 app.get('/api/checklists/:id', async (req, res) => {
     try {
         const { rows: checklistRows } = await pool.query(`SELECT * FROM checklists WHERE id = $1`, [req.params.id]);
-        if (checklistRows.length === 0) return res.status(404).json({ erro: "Checklist não encontrado" });
+        if (checklistRows.length === 0) return res.status(404).json({ sucesso: false, erro: "Checklist não encontrado" });
         
         const checklist = checklistRows[0];
         const { rows: itens } = await pool.query(`SELECT * FROM checklist_itens WHERE checklist_id = $1`, [req.params.id]);
         
         return res.json({ ...checklist, itens: formatarItensComFotos(itens || []) });
     } catch (err) {
-        return res.status(500).json({ erro: err.message });
+        return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
@@ -543,7 +542,7 @@ app.post('/api/checklist-itens/:id/foto', upload.array('fotos'), async (req, res
 
 // --- AUTENTICAÇÃO E CADASTRO ---
 app.post('/api/cadastro', async (req, res) => {
-    const usuarioParaSalvar = (req.body.usuario || req.body.nome || '').trim();
+    const usuarioParaSalvar = (req.body.usuario || req.body.nome || '').trim().toLowerCase();
     const senha = req.body.senha;
     const tipo = (req.body.tipo || 'comum').trim();
 
@@ -558,20 +557,28 @@ app.post('/api/cadastro', async (req, res) => {
 });
 
 app.post('/api/login', async (req, res) => {
-    const usuarioParaBuscar = (req.body.usuario || '').trim();
+    const usuarioParaBuscar = (req.body.usuario || '').trim().toLowerCase();
     const senha = req.body.senha;
 
-    if (!usuarioParaBuscar || !senha) return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
+    if (!usuarioParaBuscar || !senha) {
+        return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
+    }
 
     try {
-        const { rows } = await pool.query(`SELECT * FROM usuarios WHERE usuario = $1 AND senha = $2`, [usuarioParaBuscar, senha]);
+        // Busca flexível ignorando diferenças de maiúsculas/minúsculas no banco
+        const { rows } = await pool.query(
+            `SELECT * FROM usuarios WHERE LOWER(TRIM(usuario)) = $1 AND senha = $2`, 
+            [usuarioParaBuscar, senha]
+        );
+        
         if (rows[0]) {
             return res.json({ sucesso: true, usuario: rows[0].usuario, tipo: rows[0].tipo || 'comum' });
         } else {
             return res.status(401).json({ sucesso: false, mensagem: "Usuário ou senha inválidos." });
         }
     } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: "Erro interno no servidor." });
+        console.error("Erro no login:", err.message);
+        return res.status(500).json({ sucesso: false, mensagem: "Erro interno no servidor." });
     }
 });
 
