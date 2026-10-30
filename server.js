@@ -103,8 +103,11 @@ const initDb = async () => {
             responsavel TEXT,
             criado_por TEXT,
             concluido_por TEXT,
+            data DATE,
             data_criacao TIMESTAMP
         )`);
+
+        await pool.query(`ALTER TABLE checklists ADD COLUMN IF NOT EXISTS data DATE`);
 
         await pool.query(`CREATE TABLE IF NOT EXISTS checklist_itens (
             id SERIAL PRIMARY KEY,
@@ -443,32 +446,26 @@ app.delete('/api/planos-acao/:id', async (req, res) => {
 
 // --- ROTAS DE CHECKLISTS ---
 app.post('/api/checklists', async (req, res) => {
-    const { titulo, responsavel, itens, dias = 1, usuario } = req.body;
+    const { titulo, responsavel, data, itens, usuario } = req.body;
     if (!titulo || !itens || itens.length === 0) {
         return res.status(400).json({ sucesso: false, mensagem: "Título e itens são obrigatórios." });
     }
 
-    const totalCriar = parseInt(dias) || 1;
     const dataAtualLocal = getAgoraBrasil();
+    const dataRealizacao = data || new Date().toISOString().split('T')[0];
 
     try {
-        for (let i = 0; i < totalCriar; i++) {
-            const dataAlvo = new Date();
-            dataAlvo.setDate(dataAlvo.getDate() + i);
-            const dataFormatada = dataAlvo.toLocaleDateString('pt-BR');
-            const tituloFinal = totalCriar > 1 ? `${titulo} (${dataFormatada})` : titulo;
-
-            const { rows } = await pool.query(
-                `INSERT INTO checklists (titulo, responsavel, criado_por, data_criacao) VALUES ($1, $2, $3, $4) RETURNING id`, 
-                [tituloFinal, responsavel || 'Não definido', usuario || 'Desconhecido', dataAtualLocal]
-            );
-            
-            const checklistId = rows[0].id;
-            for (const item of itens) {
-                await pool.query(`INSERT INTO checklist_itens (checklist_id, descricao) VALUES ($1, $2)`, [checklistId, item]); 
-            } 
+        const { rows } = await pool.query(
+            `INSERT INTO checklists (titulo, responsavel, criado_por, data, data_criacao) VALUES ($1, $2, $3, $4, $5) RETURNING id`, 
+            [titulo, responsavel || 'Não definido', usuario || 'Desconhecido', dataRealizacao, dataAtualLocal]
+        );
+        
+        const checklistId = rows[0].id;
+        for (const item of itens) {
+            await pool.query(`INSERT INTO checklist_itens (checklist_id, descricao) VALUES ($1, $2)`, [checklistId, item]); 
         } 
-        return res.json({ sucesso: true });
+
+        return res.json({ sucesso: true, mensagem: "Checklist criado com sucesso!" });
     } catch (err) {
         return res.status(500).json({ sucesso: false, erro: err.message });
     }
@@ -494,7 +491,7 @@ function formatarItensComFotos(itens) {
 
 app.get('/api/checklists', async (req, res) => {
     try {
-        const { rows: checklists } = await pool.query(`SELECT id, titulo, responsavel, criado_por, concluido_por, data_criacao FROM checklists ORDER BY id DESC`);
+        const { rows: checklists } = await pool.query(`SELECT id, titulo, responsavel, criado_por, concluido_por, data, data_criacao FROM checklists ORDER BY id DESC`);
         if (!checklists || checklists.length === 0) return res.json([]);
 
         const resultados = await Promise.all(checklists.map(async (cl) => {
