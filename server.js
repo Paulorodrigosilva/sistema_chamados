@@ -86,12 +86,13 @@ const initDb = async () => {
             data_abertura TIMESTAMP
         )`);
 
-        // Tabela de Planos de Ação
+        // Tabela de Planos de Ação atualizada para suportar as etapas/tarefas dinâmicas
         await pool.query(`CREATE TABLE IF NOT EXISTS planos_acao (
             id SERIAL PRIMARY KEY,
             titulo TEXT,
             descricao TEXT,
             responsavel TEXT,
+            tarefas TEXT,
             status TEXT DEFAULT 'Pendente',
             data_criacao TIMESTAMP
         )`);
@@ -351,7 +352,7 @@ app.delete('/api/chamados/:id', async (req, res) => {
         await pool.query('DELETE FROM chamados WHERE id = $1', [req.params.id]);
         return res.json({ sucesso: true, mensagem: "Chamado excluído com sucesso!" });
     } catch (err) {
-        return res.status(500).json({ sucesso: false, mensagem: err.message });
+        return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
@@ -420,13 +421,13 @@ app.delete('/api/ordens-servico/:id', async (req, res) => {
 
 // --- ROTAS DE PLANOS DE AÇÃO ---
 app.post('/api/planos-acao', async (req, res) => {
-    const { titulo, descricao, responsavel, status } = req.body;
+    const { titulo, descricao, responsavel, tarefas, status } = req.body;
     const dataAtualLocal = getAgoraBrasil();
 
     try {
         const { rows } = await pool.query(
-            `INSERT INTO planos_acao (titulo, descricao, responsavel, status, data_criacao) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-            [titulo || 'Sem título', descricao || 'Sem descrição', responsavel || 'Não definido', status || 'Pendente', dataAtualLocal]
+            `INSERT INTO planos_acao (titulo, descricao, responsavel, tarefas, status, data_criacao) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+            [titulo || 'Sem título', descricao || 'Sem descrição', responsavel || 'Não definido', JSON.stringify(tarefas || []), status || 'Pendente', dataAtualLocal]
         );
         return res.json({ sucesso: true, id: rows[0].id, mensagem: "Plano de ação criado com sucesso!" });
     } catch (err) {
@@ -450,6 +451,22 @@ app.get('/api/planos-acao', async (req, res) => {
         return res.json(ajustados);
     } catch (err) {
         return res.status(500).json({ erro: err.message });
+    }
+});
+
+app.put('/api/planos-acao/:id', async (req, res) => {
+    const { id } = req.params;
+    const { titulo, descricao, responsavel, tarefas, status } = req.body;
+
+    try {
+        const { rowCount } = await pool.query(
+            `UPDATE planos_acao SET titulo = $1, descricao = $2, responsavel = $3, tarefas = $4, status = $5 WHERE id = $6`,
+            [titulo, descricao, responsavel, JSON.stringify(tarefas || []), status, id]
+        );
+        if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Plano de ação não encontrado." });
+        return res.json({ sucesso: true, mensagem: "Plano de ação atualizado com sucesso!" });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
