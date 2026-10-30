@@ -12,6 +12,7 @@
         input, select, textarea { padding: 8px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; }
         label { font-size: 14px; font-weight: bold; display: block; margin-bottom: 4px; color: #495057; }
         .plano-box { border: 1px solid #ced4da; padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fff; }
+        .tarefa-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; background: #f1f3f5; padding: 8px; border-radius: 4px; }
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; background-color: #17a2b8; }
     </style>
 </head>
@@ -33,16 +34,27 @@
                     <input type="text" id="tituloPlano" placeholder="Ex: Redução de Custos" required style="width: 100%;">
                 </div>
                 <div style="flex: 1; min-width: 200px;">
-                    <label>Responsável:</label>
+                    <label>Responsável Geral:</label>
                     <input type="text" id="responsavelPlano" placeholder="Nome do responsável" required style="width: 100%;">
                 </div>
             </div>
 
             <div>
                 <label>Descrição / Objetivo:</label>
-                <textarea id="descricaoPlano" placeholder="Descreva o plano de ação..." required style="width: 100%; height: 60px; resize: vertical;"></textarea>
+                <textarea id="descricaoPlano" placeholder="Descreva o plano de ação e as medidas a serem tomadas..." required style="width: 100%; height: 60px; resize: vertical;"></textarea>
             </div>
 
+            <h4 style="margin-top: 15px; margin-bottom: 8px; color: #343a40;">Etapas / Ações Previstas</h4>
+            <div id="containerTarefas">
+                <div class="tarefa-row">
+                    <input type="text" class="tarefa-acao" placeholder="O que fazer (Ação)" required style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                    <input type="text" class="tarefa-responsavel" placeholder="Quem vai fazer" required style="flex: 1; min-width: 130px; margin-bottom: 0;">
+                    <input type="date" class="tarefa-prazo" required style="width: 140px; margin-bottom: 0;">
+                </div>
+            </div>
+
+            <button type="button" onclick="adicionarLinhaTarefa()" style="background-color: #6c757d; margin-top: 5px; margin-bottom: 15px;">+ Adicionar Mais uma Etapa</button>
+            <br>
             <button type="submit" style="background-color: #28a745; font-size: 15px; font-weight: bold; padding: 10px 20px;">Salvar Plano de Ação</button>
         </form>
     </div>
@@ -71,12 +83,40 @@
             document.getElementById('tituloPlano').focus();
         }
 
+        function adicionarLinhaTarefa() {
+            const container = document.getElementById('containerTarefas');
+            const row = document.createElement('div');
+            row.className = 'tarefa-row';
+            row.innerHTML = `
+                <input type="text" class="tarefa-acao" placeholder="O que fazer (Ação)" required style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                <input type="text" class="tarefa-responsavel" placeholder="Quem vai fazer" required style="flex: 1; min-width: 130px; margin-bottom: 0;">
+                <input type="date" class="tarefa-prazo" required style="width: 140px; margin-bottom: 0;">
+                <button type="button" onclick="this.parentElement.remove()" style="background-color: #dc3545; padding: 7px 10px; font-size: 12px; margin-bottom: 0;">✕</button>
+            `;
+            container.appendChild(row);
+        }
+
         document.getElementById('formPlano').addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            const acoesInputs = document.querySelectorAll('.tarefa-acao');
+            const respInputs = document.querySelectorAll('.tarefa-responsavel');
+            const prazoInputs = document.querySelectorAll('.tarefa-prazo');
+
+            let tarefas = [];
+            for (let i = 0; i < acoesInputs.length; i++) {
+                tarefas.push({
+                    acao: acoesInputs[i].value.trim(),
+                    responsavel: respInputs[i].value.trim(),
+                    prazo: prazoInputs[i].value
+                });
+            }
+
             const novoPlano = {
                 titulo: document.getElementById('tituloPlano').value.trim(),
-                descricao: document.getElementById('descricaoPlano').value.trim(),
                 responsavel: document.getElementById('responsavelPlano').value.trim(),
+                descricao: document.getElementById('descricaoPlano').value.trim(),
+                tarefas: tarefas,
                 status: 'Pendente'
             };
 
@@ -91,6 +131,13 @@
                     alert('Plano de Ação salvo com sucesso!');
                     document.getElementById('formPlano').reset();
                     document.getElementById('responsavelPlano').value = usuarioLogado;
+                    document.getElementById('containerTarefas').innerHTML = `
+                        <div class="tarefa-row">
+                            <input type="text" class="tarefa-acao" placeholder="O que fazer (Ação)" required style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                            <input type="text" class="tarefa-responsavel" placeholder="Quem vai fazer" required style="flex: 1; min-width: 130px; margin-bottom: 0;">
+                            <input type="date" class="tarefa-prazo" required style="width: 140px; margin-bottom: 0;">
+                        </div>
+                    `;
                     carregarPlanos();
                 } else {
                     alert('Erro ao salvar plano.');
@@ -125,6 +172,16 @@
                 const box = document.createElement('div');
                 box.className = 'plano-box';
 
+                let tarefasArray = [];
+                try {
+                    tarefasArray = typeof plano.tarefas === 'string' ? JSON.parse(plano.tarefas) : (plano.tarefas || []);
+                } catch (e) { tarefasArray = []; }
+
+                let tarefasHtml = tarefasArray.map(t => {
+                    let dataFormatada = t.prazo ? t.prazo.split('-').reverse().join('/') : 'N/D';
+                    return `<div style="font-size: 13px; padding: 4px 0; border-bottom: 1px solid #eee;">👉 <strong>Ação:</strong> ${t.acao} | 👤 <strong>Quem faz:</strong> ${t.responsavel} | 📅 <strong>Prazo:</strong> ${dataFormatada}</div>`;
+                }).join('');
+
                 box.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                         <h4 style="margin: 0; color: #007bff;">📋 ${plano.titulo}</h4>
@@ -134,16 +191,45 @@
                                 <option value="Em Andamento" ${plano.status === 'Em Andamento' ? 'selected' : ''}>Em Andamento</option>
                                 <option value="Concluído" ${plano.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
                             </select>
+                            <button onclick="enviarWhatsApp(${plano.id})" style="background-color: #25d366; padding: 4px 8px; font-size: 12px; margin-left: 5px;" title="Enviar no WhatsApp">💬 WhatsApp</button>
                             <button onclick="deletarPlano(${plano.id})" style="background-color: #dc3545; padding: 4px 8px; font-size: 12px; margin-left: 5px;">Excluir</button>
                         </div>
                     </div>
-                    <div style="font-size: 14px; color: #495057; margin-bottom: 6px;">🎯 <strong>Descrição:</strong> ${plano.descricao}</div>
-                    <div style="font-size: 13px; color: #6c757d;">
-                        👷 Responsável: <strong>${plano.responsavel}</strong> | 📅 Criado em: ${plano.data_criacao || 'N/D'} | Status: <span class="badge">${plano.status}</span>
+                    <div style="font-size: 14px; color: #495057; margin-bottom: 6px;">🎯 <strong>Objetivo / Medidas:</strong> ${plano.descricao}</div>
+                    <div style="font-size: 13px; color: #6c757d; margin-bottom: 8px;">
+                        👷 Responsável Geral: <strong>${plano.responsavel}</strong> | 📅 Criado em: ${plano.data_criacao || 'N/D'} | Status: <span class="badge">${plano.status}</span>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 8px; border-radius: 4px; border: 1px solid #dee2e6;">
+                        <strong style="font-size: 12px; color: #343a40; display: block; margin-bottom: 4px;">Etapas do Plano:</strong>
+                        ${tarefasHtml || '<span style="font-size:12px; color:#999;">Nenhuma etapa detalhada.</span>'}
                     </div>
                 `;
                 container.appendChild(box);
             });
+        }
+
+        function enviarWhatsApp(id) {
+            const plano = planosGlobais.find(p => p.id === id);
+            if (!plano) return;
+
+            let tarefasArray = [];
+            try {
+                tarefasArray = typeof plano.tarefas === 'string' ? JSON.parse(plano.tarefas) : (plano.tarefas || []);
+            } catch (e) { tarefasArray = []; }
+
+            let textoEtapas = tarefasArray.map((t, index) => {
+                let dataFormatada = t.prazo ? t.prazo.split('-').reverse().join('/') : 'N/D';
+                return `\n*Etapa ${index + 1}:* ${t.acao}\n   - Responsável: ${t.responsavel}\n   - Prazo: ${dataFormatada}`;
+            }).join('\n');
+
+            let mensagem = `*PLANO DE AÇÃO: ${plano.titulo}*\n\n` +
+                           `🎯 *Objetivo / Medidas:* ${plano.descricao}\n` +
+                           `👷 *Responsável Geral:* ${plano.responsavel}\n` +
+                           `📊 *Status:* ${plano.status}\n\n` +
+                           `*Etapas Planejadas:*` + (textoEtapas || '\nNenhuma etapa informada.') + `\n\n_Gerenciado via Sistema SyncStore_`;
+
+            const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
+            window.open(url, '_blank');
         }
 
         async function alterarStatusPlano(id, novoStatus) {
