@@ -544,12 +544,3 @@ app.post('/api/login', async (req, res) => {
     } catch (err) {
         return res.status(500).json({ sucesso: false, mensagem: "Erro interno no servidor." });
     }
-});
-
-// Exporta o app para o Vercel Serverless Functions
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(3000, () => {
-        console.log('Servidor rodando na porta 3000 localmente');
-    });
-}
-module.exports = app;
