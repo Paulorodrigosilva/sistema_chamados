@@ -52,13 +52,8 @@
             </div>
 
             <div style="margin-bottom: 10px;">
-                <label style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 4px;">Gerar checklist para quantos dias?</label>
-                <select id="qtdDiasChecklist" style="width: 350px;">
-                    <option value="1">Apenas hoje (1 dia)</option>
-                    <option value="7">Próximos 7 dias (1 semana)</option>
-                    <option value="15">Próximos 15 dias</option>
-                    <option value="30">Próximos 30 dias (1 mês)</option>
-                </select>
+                <label style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 4px;">Data para realização:</label>
+                <input type="date" id="dataChecklist" required style="width: 350px;">
             </div>
 
             <div id="itensChecklistContainer">
@@ -70,7 +65,7 @@
                 <button type="button" onclick="salvarComoModeloPadrao()" style="background-color: #28a745; margin-left: 10px;">💾 Salvar atual como Modelo Padrão</button>
             </div>
 
-            <button type="submit" style="background-color: #17a2b8; font-size: 15px; font-weight: bold;">Salvar Checklist(s)</button>
+            <button type="submit" style="background-color: #17a2b8; font-size: 15px; font-weight: bold;">Salvar Checklist</button>
         </form>
     </div>
 
@@ -110,17 +105,24 @@
             usuarioLogado = "Administrador";
         }
 
-        // Atualiza a lista automaticamente mantendo os filtros ativos quando a aba ganha foco
-        window.addEventListener('focus', () => {
-            carregarChecklists();
-        });
-
+        // Define a data atual como padrão no input de data ao carregar a página
         window.addEventListener('DOMContentLoaded', () => {
             const displayUser = document.getElementById('usuarioLogadoDisplay');
             if (displayUser) {
                 displayUser.innerText = `👤 Logado como: ${usuarioLogado}`;
             }
+            
+            // Preenche o campo de data com o dia de hoje formatado (YYYY-MM-DD)
+            const hoje = new Date().toISOString().split('T')[0];
+            const inputData = document.getElementById('dataChecklist');
+            if (inputData) inputData.value = hoje;
+
             carregarModelosNaTela();
+            carregarChecklists();
+        });
+
+        window.addEventListener('focus', () => {
+            carregarChecklists();
         });
 
         let checklistsGlobais = [];
@@ -175,7 +177,6 @@
                     btnRemover.className = 'btn-remover-modelo';
                     btnRemover.innerText = '✕';
                     btnRemover.title = 'Excluir este modelo personalizado';
-                    // Passamos o título exato em vez do índice do array para evitar apagar o modelo errado
                     btnRemover.onclick = () => removerModeloPorTitulo(modelo.titulo);
                     wrapper.appendChild(btnRemover);
                 }
@@ -264,7 +265,7 @@
             e.preventDefault();
             const titulo = document.getElementById('tituloChecklist').value;
             const responsavel = document.getElementById('responsavelChecklist').value;
-            const dias = document.getElementById('qtdDiasChecklist').value;
+            const dataEspecifica = document.getElementById('dataChecklist').value; // Pega a data selecionada
             const inputs = document.querySelectorAll('.item-input');
             const itens = Array.from(inputs).map(input => input.value).filter(val => val.trim() !== '');
 
@@ -280,16 +281,18 @@
                     body: JSON.stringify({ 
                         titulo, 
                         responsavel,
+                        data: dataEspecifica, // Envia a data específica para o backend
                         itens, 
-                        dias, 
                         usuario: usuarioLogado 
                     })
                 });
 
                 const resultado = await res.json();
                 if (res.ok) {
-                    alert(resultado.mensagem || 'Checklist(s) criado(s) com sucesso!');
+                    alert(resultado.mensagem || 'Checklist criado com sucesso!');
                     document.getElementById('formChecklist').reset();
+                    // Restaura a data de hoje e o campo de item padrão após limpar
+                    document.getElementById('dataChecklist').value = new Date().toISOString().split('T')[0];
                     document.getElementById('itensChecklistContainer').innerHTML = '<input type="text" class="item-input" placeholder="Item 1 do Checklist" required style="width: 300px;"><br>';
                     carregarChecklists();
                 } else {
@@ -305,17 +308,13 @@
                 const res = await fetch('/api/checklists');
                 checklistsGlobais = await res.json();
                 
+                // Ordenação por data (suporta se vier via propriedade `data` do banco ou formatada no título)
                 checklistsGlobais.sort((a, b) => {
-                    const extrairData = (titulo) => {
-                        const match = titulo.match(/\((\d{2}\/\d{2}\/\d{4})\)/);
-                        if (!match) return 0;
-                        const [dia, mes, ano] = match[1].split('/');
-                        return new Date(`${ano}-${mes}-${dia}`).getTime();
-                    };
-                    return extrairData(a.titulo) - extrairData(b.titulo);
+                    const dataA = a.data ? new Date(a.data).getTime() : 0;
+                    const dataB = b.data ? new Date(b.data).getTime() : 0;
+                    return dataA - dataB;
                 });
 
-                // Re-aplica os filtros atuais caso o usuário tenha digitado algo antes de atualizar
                 filtrarChecklists();
             } catch (err) {
                 console.error("Erro ao carregar checklists:", err);
@@ -363,12 +362,22 @@
                 const criador = cl.criado_por ? cl.criado_por : 'Não identificado';
                 const responsavel = cl.responsavel ? cl.responsavel : 'Não definido';
                 const finalizador = cl.concluido_por ? cl.concluido_por : 'Não concluído / Pendente';
+                
+                // Formata a data para exibição (DD/MM/AAAA) caso venha no formato YYYY-MM-DD
+                let dataFormatada = 'Não informada';
+                if (cl.data) {
+                    const partes = cl.data.split('T')[0].split('-');
+                    if (partes.length === 3) {
+                        dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+                    }
+                }
 
                 box.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <h4 style="margin: 0 0 5px 0; cursor: pointer; color: #007bff;" onclick="window.location.href='checklist-detalhe.html?id=${cl.id}'">📋 ${cl.titulo} (Clique para abrir/executar)</h4>
                         <button onclick="deletarChecklist(${cl.id})" style="background-color: #dc3545; padding: 3px 8px; font-size: 12px;">Excluir</button>
                     </div>
+                    <div class="autor-info">📅 <strong>Data para realização:</strong> ${dataFormatada}</div>
                     <div class="autor-info">👷 <strong>Responsável:</strong> ${responsavel}</div>
                     <div class="autor-info">✍️ <strong>Criado por:</strong> ${criador}</div>
                     <div class="autor-info">👤 <strong>Finalizado por:</strong> ${finalizador}</div>
@@ -400,11 +409,8 @@
 
                 let atendeData = true;
                 if (dataInicioTime || dataFimTime) {
-                    const match = cl.titulo.match(/\((\d{2}\/\d{2}\/\d{4})\)/);
-                    if (match) {
-                        const [dia, mes, ano] = match[1].split('/');
-                        const dataChecklistTime = new Date(`${ano}-${mes}-${dia}T00:00:00`).getTime();
-
+                    if (cl.data) {
+                        const dataChecklistTime = new Date(cl.data.split('T')[0] + 'T00:00:00').getTime();
                         if (dataInicioTime && dataChecklistTime < dataInicioTime) atendeData = false;
                         if (dataFimTime && dataChecklistTime > dataFimTime) atendeData = false;
                     } else {
@@ -436,8 +442,6 @@
                 console.error("Erro ao deletar:", err);
             }
         }
-
-        carregarChecklists();
     </script>
 </body>
 </html>
