@@ -411,4 +411,117 @@
             dadosFiltrados.forEach(item => {
                 const tr = document.createElement('tr');
                 
-                let badgeTipo = 'bg-primary bg-opacity-10 text
+                let badgeTipo = 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25';
+                if (item.tipo === 'Plano de Ação') {
+                    badgeTipo = 'bg-info bg-opacity-10 text-info border border-info border-opacity-25';
+                } else if (item.tipo === 'Ordem de Serviço') {
+                    badgeTipo = 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25';
+                } else if (item.tipo === 'Checklist') {
+                    badgeTipo = 'bg-success bg-opacity-10 text-success border border-success border-opacity-25';
+                }
+
+                const statusLower = item.status.toLowerCase();
+                let badgeStatus = '';
+
+                // Regra de cores solicitada:
+                // - Fechado ou Concluído -> Verde
+                // - Em Andamento -> Laranja
+                // - Aberto / Pendente -> Vermelho
+                if (statusLower.includes('concluído') || statusLower.includes('concluída') || statusLower.includes('finalizado') || statusLower.includes('fechado')) {
+                    badgeStatus = 'bg-success bg-opacity-10 text-success border border-success border-opacity-25'; // Verde
+                } else if (statusLower.includes('andamento')) {
+                    badgeStatus = 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25'; // Laranja
+                } else if (statusLower.includes('aberto') || statusLower.includes('aber') || statusLower.includes('pendente')) {
+                    badgeStatus = 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25'; // Vermelho
+                } else if (statusLower.includes('cancelada')) {
+                    badgeStatus = 'bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25';
+                } else {
+                    badgeStatus = 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25';
+                }
+
+                tr.innerHTML = `
+                    <td><span class="badge px-2 py-1 ${badgeTipo}">${item.tipo}</span></td>
+                    <td class="fw-semibold text-dark">${item.titulo}</td>
+                    <td class="text-muted small">${item.detalhes}</td>
+                    <td>${item.responsavel}</td>
+                    <td><span class="badge px-2 py-1 ${badgeStatus}">${item.status}</span></td>
+                    <td class="text-muted">${item.data}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filtrarTabela() {
+            const tipoFiltro = document.getElementById('filtroTipo').value;
+            const statusFiltro = document.getElementById('filtroStatus').value.toLowerCase();
+            const textoBusca = document.getElementById('filtroBusca').value.toLowerCase();
+
+            const filtrados = dadosGlobais.filter(item => {
+                const matchTipo = !tipoFiltro || item.tipo === tipoFiltro;
+                
+                const statusItem = item.status.toLowerCase();
+                let matchStatus = true;
+                if (statusFiltro) {
+                    if (statusFiltro === 'aberto') {
+                        matchStatus = statusItem.includes('aberto') || statusItem.includes('aber') || statusItem.includes('andamento') || statusItem.includes('pendente');
+                    } else if (statusFiltro === 'concluído') {
+                        matchStatus = statusItem.includes('concluído') || statusItem.includes('concluída') || statusItem.includes('finalizado') || statusItem.includes('fechado');
+                    } else {
+                        matchStatus = statusItem.includes(statusFiltro);
+                    }
+                }
+
+                const matchTexto = !textoBusca || 
+                                   item.titulo.toLowerCase().includes(textoBusca) || 
+                                   item.detalhes.toLowerCase().includes(textoBusca) || 
+                                   item.responsavel.toLowerCase().includes(textoBusca);
+
+                return matchTipo && matchStatus && matchTexto;
+            });
+
+            renderizarTabela(filtrados);
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroTipo').value = '';
+            document.getElementById('filtroStatus').value = '';
+            document.getElementById('filtroBusca').value = '';
+            renderizarTabela(dadosGlobais);
+        }
+
+        function exportarCSV() {
+            if (!dadosFiltradosAtuais || dadosFiltradosAtuais.length === 0) {
+                alert("Não há dados para exportar com o filtro atual.");
+                return;
+            }
+
+            let csvContent = "\uFEFF";
+            csvContent += "Tipo;Identificação;Detalhes;Responsável;Status;Data\n";
+
+            dadosFiltradosAtuais.forEach(item => {
+                const tipo = `"${(item.tipo || '').replace(/"/g, '""')}"`;
+                const identificacao = `"${(item.identificacao || '').replace(/"/g, '""')}"`;
+                const detalhes = `"${(item.detalhes || '').replace(/"/g, '""').replace(/[\r\n]+/g, ' ')}"`;
+                const responsavel = `"${(item.responsavel || '').replace(/"/g, '""')}"`;
+                const status = `"${(item.status || '').replace(/"/g, '""')}"`;
+                const data = `"${(item.data || '').replace(/"/g, '""')}"`;
+
+                csvContent += `${tipo};${identificacao};${detalhes};${responsavel};${status};${data}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            
+            const dataAtual = new Date().toISOString().slice(0, 10);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `relatorio_geral_${dataAtual}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.onload = carregarDados;
+    </script>
+</body>
+</html>
