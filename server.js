@@ -86,6 +86,16 @@ const initDb = async () => {
             data_abertura TIMESTAMP
         )`);
 
+        // ➕ Adicionado: Tabela de Planos de Ação
+        await pool.query(`CREATE TABLE IF NOT EXISTS planos_acao (
+            id SERIAL PRIMARY KEY,
+            titulo TEXT,
+            descricao TEXT,
+            responsavel TEXT,
+            status TEXT DEFAULT 'Pendente',
+            data_criacao TIMESTAMP
+        )`);
+
         await pool.query(`CREATE TABLE IF NOT EXISTS checklists (
             id SERIAL PRIMARY KEY,
             titulo TEXT,
@@ -123,7 +133,6 @@ app.post('/api/usuarios', async (req, res) => {
     const usuarioParaSalvar = (nome || req.body.usuario || '').trim().toLowerCase();
     const tipoUsuario = (tipo || 'comum').trim();
     
-    // Contas criadas pelo painel admin ou master nascem validadas, criadas por auto-registro nascem pendentes (false)
     const validado = req.body.validado !== undefined ? req.body.validado : (tipoUsuario === 'master' || tipoUsuario === 'administrador');
 
     if (!usuarioParaSalvar || !senha) {
@@ -162,7 +171,6 @@ app.put('/api/usuarios/:id', async (req, res) => {
     }
 });
 
-// Nova rota: Validar usuário pelo Master
 app.put('/api/usuarios/:id/validar', async (req, res) => {
     const { id } = req.params;
     try {
@@ -174,7 +182,6 @@ app.put('/api/usuarios/:id/validar', async (req, res) => {
     }
 });
 
-// Nova rota: Alterar senha do usuário
 app.put('/api/usuarios/:id/senha', async (req, res) => {
     const { id } = req.params;
     const { senha } = req.body;
@@ -411,6 +418,60 @@ app.delete('/api/ordens-servico/:id', async (req, res) => {
     }
 });
 
+// --- ➕ ROTAS DE PLANOS DE AÇÃO ---
+app.post('/api/planos-acao', async (req, res) => {
+    const { titulo, descricao, responsavel, status } = req.body;
+    const dataAtualLocal = getAgoraBrasil();
+
+    try {
+        const { rows } = await pool.query(
+            `INSERT INTO planos_acao (titulo, descricao, responsavel, status, data_criacao) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+            [titulo || 'Sem título', descricao || 'Sem descrição', responsavel || 'Não definido', status || 'Pendente', dataAtualLocal]
+        );
+        return res.json({ sucesso: true, id: rows[0].id, mensagem: "Plano de ação criado com sucesso!" });
+    } catch (err) {
+        console.error("Erro ao inserir plano de ação:", err.message);
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.get('/api/planos-acao', async (req, res) => {
+    try {
+        const { rows } = await pool.query(`SELECT * FROM planos_acao ORDER BY data_criacao DESC`);
+        const ajustados = rows.map(row => {
+            if (row.data_criacao) {
+                const dt = new Date(row.data_criacao);
+                if (!isNaN(dt.getTime())) {
+                    row.data_criacao = dt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                }
+            }
+            return row;
+        });
+        return res.json(ajustados);
+    } catch (err) {
+        return res.status(500).json({ erro: err.message });
+    }
+});
+
+app.patch('/api/planos-acao/:id/status', async (req, res) => {
+    try {
+        const { status } = req.body;
+        await pool.query(`UPDATE planos_acao SET status = $1 WHERE id = $2`, [status, req.params.id]);
+        return res.json({ sucesso: true, mensagem: "Status atualizado com sucesso!" });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.delete('/api/planos-acao/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM planos_acao WHERE id = $1', [req.params.id]);
+        return res.json({ sucesso: true, mensagem: "Plano de ação excluído com sucesso!" });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, mensagem: err.message });
+    }
+});
+
 // --- ROTAS DE CHECKLISTS ---
 app.post('/api/checklists', async (req, res) => {
     const { titulo, responsavel, itens, dias = 1, usuario } = req.body;
@@ -608,7 +669,6 @@ app.post('/api/cadastro', async (req, res) => {
     if (!usuarioParaSalvar || !senha) return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
 
     try {
-        // Auto-registro por padrão nasce com validado = false
         await pool.query(`INSERT INTO usuarios (usuario, senha, tipo, validado) VALUES ($1, $2, $3, FALSE)`, [usuarioParaSalvar, senha, tipo]);
         return res.json({ sucesso: true, mensagem: "Conta criada com sucesso! Aguarde a validação do Master para ter acesso." });
     } catch (err) {
@@ -633,7 +693,6 @@ app.post('/api/login', async (req, res) => {
         if (rows[0]) {
             const user = rows[0];
 
-            // 🛑 BLOQUEIO DE SEGURANÇA: Impede login se não estiver validado
             if (user.validado !== true) {
                 return res.status(403).json({ 
                     sucesso: false, 
