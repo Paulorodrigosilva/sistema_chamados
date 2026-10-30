@@ -236,82 +236,76 @@
 
         document.getElementById('usuarioLogado').innerText = usuarioLogado;
 
+        function formatarDataBR(dataStr) {
+            if (!dataStr) return '-';
+            const dt = new Date(dataStr);
+            if (!isNaN(dt.getTime())) {
+                return dt.toLocaleDateString('pt-BR');
+            }
+            if (typeof dataStr === 'string' && dataStr.length >= 10) {
+                const partes = dataStr.substring(0, 10).split('-');
+                if (partes.length === 3) {
+                    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+                }
+            }
+            return dataStr;
+        }
+
         async function carregarDados() {
             dadosGlobais = [];
 
-            // 1. Busca Chamados direto da API do servidor (PostgreSQL)
+            // 1. Busca Chamados do Servidor
             try {
                 const res = await fetch('/api/chamados');
-                const resChamados = await res.json();
-                
-                (resChamados || []).forEach(c => {
-                    let dataFormatada = '-';
-                    if (c.data_abertura) {
-                        const dt = new Date(c.data_abertura);
-                        if (!isNaN(dt.getTime())) {
-                            dataFormatada = dt.toLocaleDateString('pt-BR');
-                        } else if (typeof c.data_abertura === 'string' && c.data_abertura.length >= 10) {
-                            const partes = c.data_abertura.substring(0, 10).split('-');
-                            if (partes.length === 3) {
-                                dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
-                            }
-                        }
-                    }
-
-                    dadosGlobais.push({
-                        tipo: 'Chamado',
-                        identificacao: `Chamado #${c.id}`,
-                        loja: c.loja || '-',
-                        equipamento: c.equipamento || 'Geral',
-                        descricao: c.descricao || '-',
-                        titulo: `Chamado #${c.id} - ${c.equipamento || 'Geral'}`,
-                        detalhes: `Loja: ${c.loja || '-'} | Setor: ${c.setor || '-'} | ${c.descricao || ''}`,
-                        responsavel: c.responsavel || 'Não atribuído',
-                        status: c.status || 'Aberto',
-                        data: dataFormatada
+                if (res.ok) {
+                    const resChamados = await res.json();
+                    (resChamados || []).forEach(c => {
+                        dadosGlobais.push({
+                            tipo: 'Chamado',
+                            identificacao: `Chamado #${c.id}`,
+                            loja: c.loja || '-',
+                            equipamento: c.equipamento || 'Geral',
+                            descricao: c.descricao || '-',
+                            titulo: `Chamado #${c.id} - ${c.equipamento || 'Geral'}`,
+                            detalhes: `Loja: ${c.loja || '-'} | Setor: ${c.setor || '-'} | ${c.descricao || ''}`,
+                            responsavel: c.responsavel || 'Não atribuído',
+                            status: c.status || 'Aberto',
+                            data: formatarDataBR(c.data_abertura)
+                        });
                     });
-                });
+                }
             } catch (e) {
                 console.error("Erro ao buscar chamados:", e);
             }
 
-            // 2. Busca Ordens de Serviço direto da API do servidor (PostgreSQL)
+            // 2. Busca Ordens de Serviço do Servidor
             try {
                 const resOS = await fetch('/api/ordens-servico');
-                const listaOS = await resOS.json();
-
-                (listaOS || []).forEach(os => {
-                    let dataFormatadaOS = '-';
-                    if (os.data_abertura) {
-                        const dt = new Date(os.data_abertura);
-                        if (!isNaN(dt.getTime())) {
-                            dataFormatadaOS = dt.toLocaleDateString('pt-BR');
-                        } else {
-                            dataFormatadaOS = os.dataAbertura || '-';
-                        }
-                    }
-
-                    dadosGlobais.push({
-                        tipo: 'Ordem de Serviço',
-                        identificacao: `OS #${os.id}`,
-                        loja: os.cliente || '-',
-                        equipamento: os.equipamento || '-',
-                        descricao: os.defeito || '-',
-                        titulo: `OS #${os.id} - ${os.cliente || 'Cliente'}`,
-                        detalhes: `Equipamento: ${os.equipamento || '-'} | Defeito: ${os.defeito || '-'}`,
-                        responsavel: os.tecnico || 'Não atribuído',
-                        status: os.status || 'Aberta',
-                        data: dataFormatadaOS
+                if (resOS.ok) {
+                    const listaOS = await resOS.json();
+                    (listaOS || []).forEach(os => {
+                        dadosGlobais.push({
+                            tipo: 'Ordem de Serviço',
+                            identificacao: `OS #${os.id}`,
+                            loja: os.cliente || '-',
+                            equipamento: os.equipamento || '-',
+                            descricao: os.defeito || '-',
+                            titulo: `OS #${os.id} - ${os.cliente || 'Cliente'}`,
+                            detalhes: `Equipamento: ${os.equipamento || '-'} | Defeito: ${os.defeito || '-'}`,
+                            responsavel: os.tecnico || 'Não atribuído',
+                            status: os.status || 'Aberta',
+                            data: formatarDataBR(os.data_abertura)
+                        });
                     });
-                });
+                }
             } catch (e) {
                 console.error("Erro ao buscar ordens de serviço:", e);
             }
 
             // 3. Busca Planos de Ação do localStorage
-            const planosSalvos = localStorage.getItem('planosAcao');
-            if (planosSalvos) {
-                try {
+            try {
+                const planosSalvos = localStorage.getItem('planosAcao');
+                if (planosSalvos) {
                     const listaPlanos = JSON.parse(planosSalvos);
                     listaPlanos.forEach(p => {
                         const totalTarefas = p.tarefas ? p.tarefas.length : 0;
@@ -331,7 +325,9 @@
                             data: p.dataCriacao || '-'
                         });
                     });
-                } catch(err) {}
+                }
+            } catch (err) {
+                console.error("Erro ao buscar planos de ação:", err);
             }
 
             atualizarCards(dadosGlobais);
@@ -440,4 +436,63 @@
                     } else if (statusFiltro === 'concluído') {
                         matchStatus = statusItem.includes('concluído') || statusItem.includes('concluída') || statusItem.includes('finalizado');
                     } else {
-                        matchStatus =
+                        matchStatus = statusItem.includes(statusFiltro);
+                    }
+                }
+
+                const matchTexto = !textoBusca || 
+                                   item.titulo.toLowerCase().includes(textoBusca) || 
+                                   item.detalhes.toLowerCase().includes(textoBusca) || 
+                                   item.responsavel.toLowerCase().includes(textoBusca);
+
+                return matchTipo && matchStatus && matchTexto;
+            });
+
+            renderizarTabela(filtrados);
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroTipo').value = '';
+            document.getElementById('filtroStatus').value = '';
+            document.getElementById('filtroBusca').value = '';
+            renderizarTabela(dadosGlobais);
+        }
+
+        function exportarCSV() {
+            if (!dadosFiltradosAtuais || dadosFiltradosAtuais.length === 0) {
+                alert("Não há dados para exportar com o filtro atual.");
+                return;
+            }
+
+            let csvContent = "\uFEFF";
+            csvContent += "Tipo;Identificação;Loja;Equipamento;Descrição;Responsável;Status;Data\n";
+
+            dadosFiltradosAtuais.forEach(item => {
+                const tipo = `"${(item.tipo || '').replace(/"/g, '""')}"`;
+                const identificacao = `"${(item.identificacao || '').replace(/"/g, '""')}"`;
+                const loja = `"${(item.loja || '').replace(/"/g, '""')}"`;
+                const equipamento = `"${(item.equipamento || '').replace(/"/g, '""')}"`;
+                const descricao = `"${(item.descricao || '').replace(/"/g, '""').replace(/[\r\n]+/g, ' ')}"`;
+                const responsavel = `"${(item.responsavel || '').replace(/"/g, '""')}"`;
+                const status = `"${(item.status || '').replace(/"/g, '""')}"`;
+                const data = `"${(item.data || '').replace(/"/g, '""')}"`;
+
+                csvContent += `${tipo};${identificacao};${loja};${equipamento};${descricao};${responsavel};${status};${data}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            
+            const dataAtual = new Date().toISOString().slice(0, 10);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `relatorio_servicos_${dataAtual}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.onload = carregarDados;
+    </script>
+</body>
+</html>
