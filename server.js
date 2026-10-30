@@ -47,8 +47,13 @@ const initDb = async () => {
             id SERIAL PRIMARY KEY, 
             usuario TEXT UNIQUE, 
             senha TEXT, 
-            tipo TEXT DEFAULT 'comum'
+            tipo TEXT DEFAULT 'comum',
+            validado BOOLEAN DEFAULT FALSE
         )`);
+
+        // Garante a coluna 'validado' caso a tabela já exista sem ela
+        await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS validado BOOLEAN DEFAULT FALSE`);
+
         await pool.query(`CREATE TABLE IF NOT EXISTS lojas (id SERIAL PRIMARY KEY, nome TEXT)`);
         await pool.query(`CREATE TABLE IF NOT EXISTS setores (id SERIAL PRIMARY KEY, nome TEXT)`);
         await pool.query(`CREATE TABLE IF NOT EXISTS equipamentos (id SERIAL PRIMARY KEY, nome TEXT)`);
@@ -117,14 +122,20 @@ app.post('/api/usuarios', async (req, res) => {
     const { nome, senha, tipo } = req.body;
     const usuarioParaSalvar = (nome || req.body.usuario || '').trim().toLowerCase();
     const tipoUsuario = (tipo || 'comum').trim();
+    
+    // Contas criadas pelo painel admin ou master nascem validadas, criadas por auto-registro nascem pendentes (false)
+    const validado = req.body.validado !== undefined ? req.body.validado : (tipoUsuario === 'master' || tipoUsuario === 'administrador');
 
     if (!usuarioParaSalvar || !senha) {
         return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
     }
 
     try {
-        await pool.query(`INSERT INTO usuarios (usuario, senha, tipo) VALUES ($1, $2, $3)`, [usuarioParaSalvar, senha, tipoUsuario]);
-        return res.json({ sucesso: true, mensagem: "Usuário cadastrado com sucesso!" });
+        await pool.query(
+            `INSERT INTO usuarios (usuario, senha, tipo, validado) VALUES ($1, $2, $3, $4)`, 
+            [usuarioParaSalvar, senha, tipoUsuario, validado]
+        );
+        return res.json({ sucesso: true, mensagem: "Usuário cadastrado com sucesso! " + (!validado ? "Aguardando validação do Master." : "") });
     } catch (err) {
         return res.status(400).json({ sucesso: false, mensagem: "Erro ao cadastrar usuário (já existente ou inválido)." });
     }
@@ -132,7 +143,7 @@ app.post('/api/usuarios', async (req, res) => {
 
 app.get('/api/usuarios', async (req, res) => {
     try {
-        const { rows } = await pool.query(`SELECT id, usuario, tipo FROM usuarios`);
+        const { rows } = await pool.query(`SELECT id, usuario, tipo, validado FROM usuarios`);
         return res.json(rows);
     } catch (err) {
         return res.status(500).json({ sucesso: false, erro: err.message });
@@ -146,6 +157,36 @@ app.put('/api/usuarios/:id', async (req, res) => {
         const { rowCount } = await pool.query(`UPDATE usuarios SET usuario = $1, tipo = $2 WHERE id = $3`, [usuario.trim().toLowerCase(), tipo.trim(), id]);
         if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado." });
         return res.json({ sucesso: true, mensagem: "Usuário atualizado com sucesso!" });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, mensagem: err.message });
+    }
+});
+
+// Nova rota: Validar usuário pelo Master
+app.put('/api/usuarios/:id/validar', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { rowCount } = await pool.query(`UPDATE usuarios SET validado = TRUE WHERE id = $1`, [id]);
+        if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado." });
+        return res.json({ sucesso: true, mensagem: "Usuário validado com sucesso!" });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, mensagem: err.message });
+    }
+});
+
+// Nova rota: Alterar senha do usuário
+app.put('/api/usuarios/:id/senha', async (req, res) => {
+    const { id } = req.params;
+    const { senha } = req.body;
+
+    if (!senha) {
+        return res.status(400).json({ sucesso: false, mensagem: "A nova senha é obrigatória." });
+    }
+
+    try {
+        const { rowCount } = await pool.query(`UPDATE usuarios SET senha = $1 WHERE id = $2`, [senha, id]);
+        if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado." });
+        return res.json({ sucesso: true, mensagem: "Senha alterada com sucesso!" });
     } catch (err) {
         return res.status(500).json({ sucesso: false, mensagem: err.message });
     }
@@ -405,7 +446,6 @@ app.post('/api/checklists', async (req, res) => {
     }
 });
 
-// Função robusta para tratar e formatar o array de fotos dos itens de checklist
 function formatarItensComFotos(itens) {
     return itens.map(item => {
         let fotosArray = [];
@@ -559,7 +599,7 @@ app.post('/api/checklist-itens/:id/foto', upload.array('fotos'), async (req, res
     }
 });
 
-// --- AUTENTICAÇÃO E CADASTRO ---
+// --- AUTENTICAÇÃO E LOGIN ---
 app.post('/api/cadastro', async (req, res) => {
     const usuarioParaSalvar = (req.body.usuario || req.body.nome || '').trim().toLowerCase();
     const senha = req.body.senha;
@@ -568,8 +608,9 @@ app.post('/api/cadastro', async (req, res) => {
     if (!usuarioParaSalvar || !senha) return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
 
     try {
-        await pool.query(`INSERT INTO usuarios (usuario, senha, tipo) VALUES ($1, $2, $3)`, [usuarioParaSalvar, senha, tipo]);
-        return res.json({ sucesso: true, mensagem: "Usuário cadastrado com sucesso!" });
+        // Auto-registro por padrão nasce com validado = false
+        await pool.query(`INSERT INTO usuarios (usuario, senha, tipo, validado) VALUES ($1, $2, $3, FALSE)`, [usuarioParaSalvar, senha, tipo]);
+        return res.json({ sucesso: true, mensagem: "Conta criada com sucesso! Aguarde a validação do Master para ter acesso." });
     } catch (err) {
         return res.status(400).json({ sucesso: false, mensagem: "Usuário já existente ou inválido." });
     }
@@ -590,7 +631,17 @@ app.post('/api/login', async (req, res) => {
         );
         
         if (rows[0]) {
-            return res.json({ sucesso: true, usuario: rows[0].usuario, tipo: rows[0].tipo || 'comum' });
+            const user = rows[0];
+
+            // 🛑 BLOQUEIO DE SEGURANÇA: Impede login se não estiver validado
+            if (user.validado !== true) {
+                return res.status(403).json({ 
+                    sucesso: false, 
+                    mensagem: "Sua conta ainda não foi validada pelo usuário Master." 
+                });
+            }
+
+            return res.json({ sucesso: true, usuario: user.usuario, tipo: user.tipo || 'comum' });
         } else {
             return res.status(401).json({ sucesso: false, mensagem: "Usuário ou senha inválidos." });
         }
