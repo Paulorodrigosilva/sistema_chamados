@@ -86,7 +86,7 @@ const initDb = async () => {
             data_abertura TIMESTAMP
         )`);
 
-        // ➕ Adicionado: Tabela de Planos de Ação
+        // Tabela de Planos de Ação
         await pool.query(`CREATE TABLE IF NOT EXISTS planos_acao (
             id SERIAL PRIMARY KEY,
             titulo TEXT,
@@ -418,7 +418,7 @@ app.delete('/api/ordens-servico/:id', async (req, res) => {
     }
 });
 
-// --- ➕ ROTAS DE PLANOS DE AÇÃO ---
+// --- ROTAS DE PLANOS DE AÇÃO ---
 app.post('/api/planos-acao', async (req, res) => {
     const { titulo, descricao, responsavel, status } = req.body;
     const dataAtualLocal = getAgoraBrasil();
@@ -468,7 +468,7 @@ app.delete('/api/planos-acao/:id', async (req, res) => {
         await pool.query('DELETE FROM planos_acao WHERE id = $1', [req.params.id]);
         return res.json({ sucesso: true, mensagem: "Plano de ação excluído com sucesso!" });
     } catch (err) {
-        return res.status(500).json({ sucesso: false, mensagem: err.message });
+        return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
