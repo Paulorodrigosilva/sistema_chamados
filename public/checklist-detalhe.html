@@ -97,10 +97,11 @@
                     fotosHtml = `<div class="fotos-container">`;
                     listaFotos.forEach((foto, fIndex) => {
                         const fotoSrc = foto.startsWith('/') ? foto : `/${foto}`;
+
                         fotosHtml += `
                             <div class="foto-wrapper">
-                                <a href="${fotoSrc}" target="_blank"><img src="${fotoSrc}" class="foto-preview" title="Ver foto ampliada"></a>
-                                <a href="${fotoSrc}" download="item_${item.id}_foto_${fIndex + 1}.jpg" target="_blank" title="Baixar esta foto" style="position: absolute; bottom: 0; right: 0; background: rgba(0,0,0,0.7); color: white; font-size: 11px; padding: 2px 5px; text-decoration: none; border-bottom-right-radius: 4px;">📥</a>
+                                <img src="${fotoSrc}" class="foto-preview" title="Ver foto ampliada" style="cursor: pointer;" onclick="abrirFotoAmpliada('${encodeURIComponent(fotoSrc)}')">
+                                <a href="#" onclick="event.preventDefault(); baixarFotoSegura('${encodeURIComponent(fotoSrc)}', 'item_${item.id}_foto_${fIndex + 1}.jpg')" title="Baixar esta foto" style="position: absolute; bottom: 0; right: 0; background: rgba(0,0,0,0.7); color: white; font-size: 11px; padding: 2px 5px; text-decoration: none; border-bottom-right-radius: 4px;">📥</a>
                             </div>
                         `;
                     });
@@ -177,8 +178,6 @@
             if (!files || files.length === 0) return;
 
             const formData = new FormData();
-            
-            // Adiciona todos os arquivos selecionados para o mesmo campo 'fotos'
             for (let i = 0; i < files.length; i++) {
                 formData.append('fotos', files[i]);
             }
@@ -200,16 +199,48 @@
             }
         }
 
-        function baixarTodasFotos(fotos, itemId) {
-            fotos.forEach((foto, index) => {
-                const fotoSrc = foto.startsWith('/') ? foto : `/${foto}`;
+        function abrirFotoAmpliada(base64DataUrl) {
+            const decodedUrl = decodeURIComponent(base64DataUrl);
+            const win = window.open();
+            win.document.write(`<iframe src="${decodedUrl}" frameborder="0" style="border:0; top:0; left:0; bottom:0; right:0; width:100%; height:100%;" allowfullscreen></iframe>`);
+        }
+
+        function baixarFotoSegura(base64DataUrl, nomeArquivo) {
+            const decodedUrl = decodeURIComponent(base64DataUrl);
+            if (decodedUrl.startsWith('data:image')) {
+                const arr = decodedUrl.split(',');
+                const mime = arr[0].match(/:(.*?);/)[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                const blob = new Blob([u8arr], { type: mime });
+                const blobUrl = URL.createObjectURL(blob);
+                
                 const link = document.createElement('a');
-                link.href = fotoSrc;
-                link.download = `item_${itemId}_foto_${index + 1}.jpg`;
+                link.href = blobUrl;
+                link.download = nomeArquivo;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+            } else {
+                const link = document.createElement('a');
+                link.href = decodedUrl;
+                link.download = nomeArquivo;
                 link.target = '_blank';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+            }
+        }
+
+        function baixarTodasFotos(fotos, itemId) {
+            fotos.forEach((foto, index) => {
+                const fotoSrc = foto.startsWith('/') ? foto : `/${foto}`;
+                baixarFotoSegura(encodeURIComponent(fotoSrc), `item_${itemId}_foto_${index + 1}.jpg`);
             });
         }
 
