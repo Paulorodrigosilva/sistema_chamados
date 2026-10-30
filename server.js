@@ -205,18 +205,9 @@ criarRotaApoio('/api/setores', 'setores');
 criarRotaApoio('/api/equipamentos', 'equipamentos');
 criarRotaApoio('/api/responsaveis', 'responsaveis');
 
-// --- ROTAS DE CHAMADOS (Versão Blindada e Flexível) ---
+// --- ROTAS DE CHAMADOS ---
 app.post('/api/chamados', upload.single('foto'), async (req, res) => {
-    let { 
-        descricao, texto, 
-        loja_id, loja, 
-        setor_id, setor, 
-        equipamento_id, equipamento, 
-        responsavel_id, responsavel, 
-        setor_responsavel_id, setor_responsavel, 
-        criado_por, usuario, 
-        urgencia 
-    } = req.body;
+    let { descricao, loja_id, setor_id, equipamento_id, responsavel_id, setor_responsavel_id, criado_por, urgencia } = req.body;
     
     let fotoUrl = null;
     if (req.file) {
@@ -224,11 +215,8 @@ app.post('/api/chamados', upload.single('foto'), async (req, res) => {
         fotoUrl = `data:${req.file.mimetype};base64,${base64Data}`;
     }
 
-    const descricaoFinal = descricao || texto || 'Sem descrição';
-    const criadoPorFinal = criado_por || usuario || 'Sistema';
-    const nivelUrgencia = urgencia || 'Baixa';
     const dataAtualLocal = getAgoraBrasil();
-
+    const nivelUrgencia = urgencia || 'Baixa';
     const parseId = (val) => (!val || isNaN(val)) ? null : parseInt(val);
 
     const query = `INSERT INTO chamados 
@@ -237,13 +225,13 @@ app.post('/api/chamados', upload.single('foto'), async (req, res) => {
     
     try {
         const { rows } = await pool.query(query, [
-            descricaoFinal, 
+            descricao || 'Sem descrição', 
             parseId(loja_id), 
             parseId(setor_id), 
             parseId(equipamento_id), 
             parseId(responsavel_id), 
             parseId(setor_responsavel_id), 
-            criadoPorFinal, 
+            criado_por || 'Sistema', 
             fotoUrl, 
             nivelUrgencia, 
             dataAtualLocal
@@ -315,7 +303,7 @@ app.delete('/api/chamados/:id', async (req, res) => {
         await pool.query('DELETE FROM chamados WHERE id = $1', [req.params.id]);
         return res.json({ sucesso: true, mensagem: "Chamado excluído com sucesso!" });
     } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
+        return res.status(500).json({ sucesso: false, mensagem: err.message });
     }
 });
 
@@ -378,7 +366,7 @@ app.delete('/api/ordens-servico/:id', async (req, res) => {
         await pool.query('DELETE FROM ordens_servico WHERE id = $1', [req.params.id]);
         return res.json({ sucesso: true, mensagem: "Ordem de Serviço excluída com sucesso!" });
     } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
+        return res.status(500).json({ sucesso: false, mensagem: err.message });
     }
 });
 
@@ -417,13 +405,25 @@ app.post('/api/checklists', async (req, res) => {
     }
 });
 
+// Função robusta para tratar e formatar o array de fotos dos itens de checklist
 function formatarItensComFotos(itens) {
     return itens.map(item => {
         let fotosArray = [];
-        try {
-            if (item.fotos) fotosArray = JSON.parse(item.fotos);
-        } catch (e) {
-            if (item.fotos) fotosArray = [item.fotos];
+        if (item.fotos) {
+            if (Array.isArray(item.fotos)) {
+                fotosArray = item.fotos;
+            } else {
+                try {
+                    const parsed = JSON.parse(item.fotos);
+                    if (Array.isArray(parsed)) {
+                        fotosArray = parsed;
+                    } else if (parsed) {
+                        fotosArray = [parsed];
+                    }
+                } catch (e) {
+                    fotosArray = [item.fotos];
+                }
+            }
         }
         return { ...item, fotos: fotosArray };
     });
@@ -537,10 +537,17 @@ app.post('/api/checklist-itens/:id/foto', upload.array('fotos'), async (req, res
         const row = rows[0];
 
         let listaAtual = [];
-        try {
-            if (row && row.fotos) listaAtual = JSON.parse(row.fotos);
-        } catch (e) {
-            if (row && row.fotos) listaAtual = [row.fotos];
+        if (row && row.fotos) {
+            try {
+                const parsed = JSON.parse(row.fotos);
+                if (Array.isArray(parsed)) {
+                    listaAtual = parsed;
+                } else if (parsed) {
+                    listaAtual = [parsed];
+                }
+            } catch (e) {
+                listaAtual = [row.fotos];
+            }
         }
 
         const listaFinal = [...listaAtual, ...novosArquivos];
