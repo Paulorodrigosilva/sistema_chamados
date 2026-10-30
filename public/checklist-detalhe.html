@@ -186,12 +186,10 @@
                     body: JSON.stringify({ status })
                 });
 
-                // Atualiza o status localmente para recalcular a barra de progresso imediatamente
                 const itemLocal = checklistGlobal.itens.find(i => String(i.id) === String(itemId));
                 if (itemLocal) itemLocal.status = status;
                 atualizarProgresso();
 
-                // 🚨 GERAÇÃO AUTOMÁTICA DE PLANO DE AÇÃO SE FOR "NÃO CONFORME"
                 if (status === 'nao_conforme') {
                     gerarPlanoAcaoAutomatico(descricaoItem);
                 }
