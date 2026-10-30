@@ -160,7 +160,6 @@
                 </div>
             </div>
             <div class="row g-3">
-                <!-- Filtro por Tipo de Registro -->
                 <div class="col-md-3">
                     <select id="filtroTipo" class="form-select" onchange="filtrarTabela()">
                         <option value="">Todos os Tipos</option>
@@ -170,7 +169,6 @@
                         <option value="Checklist">Checklist</option>
                     </select>
                 </div>
-                <!-- Filtro por Status unificado -->
                 <div class="col-md-3">
                     <select id="filtroStatus" class="form-select" onchange="filtrarTabela()">
                         <option value="">Todos os Status</option>
@@ -179,7 +177,6 @@
                         <option value="Cancelada">Cancelada</option>
                     </select>
                 </div>
-                <!-- Busca por texto livre -->
                 <div class="col-md-4">
                     <input type="text" id="filtroBusca" class="form-control" placeholder="Pesquisar por cliente, título, equipamento..." onkeyup="filtrarTabela()">
                 </div>
@@ -189,7 +186,7 @@
             </div>
         </div>
 
-        <!-- Caixa de Exibição Dinâmica do Filtro e Contagem por Status -->
+        <!-- Caixa de Exibição Dinâmica do Filtro -->
         <div id="containerResumoFiltro" class="alert alert-primary d-flex flex-column flex-md-row justify-content-between align-items-md-center py-2 px-3 mb-3 gap-2" style="border-radius: 10px; font-size: 14px;">
             <div>
                 <i class="bi bi-info-circle-fill me-1"></i> Filtro Ativo: <strong id="textoFiltroAtivo">Todos os Registros</strong>
@@ -254,84 +251,74 @@
 
         async function carregarDados() {
             dadosGlobais = [];
+            const tbody = document.getElementById('tabelaResultados');
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Carregando dados do histórico...</td></tr>`;
 
-            // 1. Busca Chamados do Servidor
+            // Executa todas as buscas em PARALELO usando Promise.all para máxima velocidade
             try {
-                const res = await fetch('/api/chamados');
-                if (res.ok) {
-                    const resChamados = await res.json();
-                    (resChamados || []).forEach(c => {
-                        dadosGlobais.push({
-                            tipo: 'Chamado',
-                            identificacao: `Chamado #${c.id}`,
-                            loja: c.loja || '-',
-                            equipamento: c.equipamento || 'Geral',
-                            descricao: c.descricao || '-',
-                            titulo: `Chamado #${c.id} - ${c.equipamento || 'Geral'}`,
-                            detalhes: `Loja: ${c.loja || '-'} | Setor: ${c.setor || '-'} | ${c.descricao || ''}`,
-                            responsavel: c.responsavel || 'Não atribuído',
-                            status: c.status || 'Aberto',
-                            data: formatarDataBR(c.data_abertura)
-                        });
+                const [resChamados, resOS, resCK] = await Promise.all([
+                    fetch('/api/chamados').then(r => r.ok ? r.json() : []).catch(() => []),
+                    fetch('/api/ordens-servico').then(r => r.ok ? r.json() : []).catch(() => []),
+                    fetch('/api/checklists').then(r => r.ok ? r.json() : []).catch(() => [])
+                ]);
+
+                // 1. Processa Chamados
+                (resChamados || []).forEach(c => {
+                    dadosGlobais.push({
+                        tipo: 'Chamado',
+                        identificacao: `Chamado #${c.id}`,
+                        loja: c.loja || '-',
+                        equipamento: c.equipamento || 'Geral',
+                        descricao: c.descricao || '-',
+                        titulo: `Chamado #${c.id} - ${c.equipamento || 'Geral'}`,
+                        detalhes: `Loja: ${c.loja || '-'} | Setor: ${c.setor || '-'} | ${c.descricao || ''}`,
+                        responsavel: c.responsavel || 'Não atribuído',
+                        status: c.status || 'Aberto',
+                        data: formatarDataBR(c.data_abertura)
                     });
-                }
+                });
+
+                // 2. Processa Ordens de Serviço
+                (resOS || []).forEach(os => {
+                    dadosGlobais.push({
+                        tipo: 'Ordem de Serviço',
+                        identificacao: `OS #${os.id}`,
+                        loja: os.cliente || '-',
+                        equipamento: os.equipamento || '-',
+                        descricao: os.defeito || '-',
+                        titulo: `OS #${os.id} - ${os.cliente || 'Cliente'}`,
+                        detalhes: `Equipamento: ${os.equipamento || '-'} | Defeito: ${os.defeito || '-'} | Laudo: ${os.laudo || 'Pendente'}`,
+                        responsavel: os.tecnico || 'Não atribuído',
+                        status: os.status || 'Aberta',
+                        data: formatarDataBR(os.data_abertura || os.dataAbertura)
+                    });
+                });
+
+                // 3. Processa Checklists
+                (resCK || []).forEach(ck => {
+                    const totalItens = ck.itens ? ck.itens.length : 0;
+                    const itensConcluidos = ck.itens ? ck.itens.filter(i => i.concluido === 1 || i.concluido === true).length : 0;
+                    const statusChecklist = ck.concluido_por ? 'Concluído' : (totalItens > 0 && itensConcluidos === totalItens ? 'Concluído' : 'Aberto');
+
+                    dadosGlobais.push({
+                        tipo: 'Checklist',
+                        identificacao: `Checklist #${ck.id}`,
+                        loja: '-',
+                        equipamento: '-',
+                        descricao: ck.titulo || '-',
+                        titulo: ck.titulo || 'Checklist',
+                        detalhes: `Itens concluídos: ${itensConcluidos}/${totalItens} ${ck.concluido_por ? `(Feito por: ${ck.concluido_por})` : ''}`,
+                        responsavel: ck.responsavel || ck.criado_por || 'Sistema',
+                        status: statusChecklist,
+                        data: formatarDataBR(ck.data_criacao)
+                    });
+                });
+
             } catch (e) {
-                console.error("Erro ao buscar chamados:", e);
+                console.error("Erro ao buscar dados do servidor:", e);
             }
 
-            // 2. Busca Ordens de Serviço do Servidor (PostgreSQL)
-            try {
-                const resOS = await fetch('/api/ordens-servico');
-                if (resOS.ok) {
-                    const listaOS = await resOS.json();
-                    (listaOS || []).forEach(os => {
-                        dadosGlobais.push({
-                            tipo: 'Ordem de Serviço',
-                            identificacao: `OS #${os.id}`,
-                            loja: os.cliente || '-',
-                            equipamento: os.equipamento || '-',
-                            descricao: os.defeito || '-',
-                            titulo: `OS #${os.id} - ${os.cliente || 'Cliente'}`,
-                            detalhes: `Equipamento: ${os.equipamento || '-'} | Defeito: ${os.defeito || '-'} | Laudo: ${os.laudo || 'Pendente'}`,
-                            responsavel: os.tecnico || 'Não atribuído',
-                            status: os.status || 'Aberta',
-                            data: formatarDataBR(os.data_abertura || os.dataAbertura)
-                        });
-                    });
-                }
-            } catch (e) {
-                console.error("Erro ao buscar ordens de serviço:", e);
-            }
-
-            // 3. Busca Checklists do Servidor
-            try {
-                const resCK = await fetch('/api/checklists');
-                if (resCK.ok) {
-                    const listaCK = await resCK.json();
-                    (listaCK || []).forEach(ck => {
-                        const totalItens = ck.itens ? ck.itens.length : 0;
-                        const itensConcluidos = ck.itens ? ck.itens.filter(i => i.concluido === 1 || i.concluido === true).length : 0;
-                        const statusChecklist = ck.concluido_por ? 'Concluído' : (totalItens > 0 && itensConcluidos === totalItens ? 'Concluído' : 'Aberto');
-
-                        dadosGlobais.push({
-                            tipo: 'Checklist',
-                            identificacao: `Checklist #${ck.id}`,
-                            loja: '-',
-                            equipamento: '-',
-                            descricao: ck.titulo || '-',
-                            titulo: ck.titulo || 'Checklist',
-                            detalhes: `Itens concluídos: ${itensConcluidos}/${totalItens} ${ck.concluido_por ? `(Feito por: ${ck.concluido_por})` : ''}`,
-                            responsavel: ck.responsavel || ck.criado_por || 'Sistema',
-                            status: statusChecklist,
-                            data: formatarDataBR(ck.data_criacao)
-                        });
-                    });
-                }
-            } catch (e) {
-                console.error("Erro ao buscar checklists:", e);
-            }
-
-            // 4. Busca Planos de Ação do localStorage
+            // 4. Processa Planos de Ação do localStorage
             try {
                 const planosSalvos = localStorage.getItem('planosAcao');
                 if (planosSalvos) {
@@ -463,3 +450,65 @@
                 let matchStatus = true;
                 if (statusFiltro) {
                     if (statusFiltro === 'aberto') {
+                        matchStatus = statusItem.includes('aberto') || statusItem.includes('aber') || statusItem.includes('andamento');
+                    } else if (statusFiltro === 'concluído') {
+                        matchStatus = statusItem.includes('concluído') || statusItem.includes('concluída') || statusItem.includes('finalizado');
+                    } else {
+                        matchStatus = statusItem.includes(statusFiltro);
+                    }
+                }
+
+                const matchTexto = !textoBusca || 
+                                   item.titulo.toLowerCase().includes(textoBusca) || 
+                                   item.detalhes.toLowerCase().includes(textoBusca) || 
+                                   item.responsavel.toLowerCase().includes(textoBusca);
+
+                return matchTipo && matchStatus && matchTexto;
+            });
+
+            renderizarTabela(filtrados);
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroTipo').value = '';
+            document.getElementById('filtroStatus').value = '';
+            document.getElementById('filtroBusca').value = '';
+            renderizarTabela(dadosGlobais);
+        }
+
+        function exportarCSV() {
+            if (!dadosFiltradosAtuais || dadosFiltradosAtuais.length === 0) {
+                alert("Não há dados para exportar com o filtro atual.");
+                return;
+            }
+
+            let csvContent = "\uFEFF";
+            csvContent += "Tipo;Identificação;Detalhes;Responsável;Status;Data\n";
+
+            dadosFiltradosAtuais.forEach(item => {
+                const tipo = `"${(item.tipo || '').replace(/"/g, '""')}"`;
+                const identificacao = `"${(item.identificacao || '').replace(/"/g, '""')}"`;
+                const detalhes = `"${(item.detalhes || '').replace(/"/g, '""').replace(/[\r\n]+/g, ' ')}"`;
+                const responsavel = `"${(item.responsavel || '').replace(/"/g, '""')}"`;
+                const status = `"${(item.status || '').replace(/"/g, '""')}"`;
+                const data = `"${(item.data || '').replace(/"/g, '""')}"`;
+
+                csvContent += `${tipo};${identificacao};${detalhes};${responsavel};${status};${data}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            
+            const dataAtual = new Date().toISOString().slice(0, 10);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `relatorio_geral_${dataAtual}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.onload = carregarDados;
+    </script>
+</body>
+</html>
