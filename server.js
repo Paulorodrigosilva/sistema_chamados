@@ -508,6 +508,30 @@ app.get('/api/checklists', async (req, res) => {
     }
 });
 
+// 🔍 ROTA ADICIONADA PARA BUSCAR CHECKLIST POR ID (Resolve o erro 404)
+app.get('/api/checklists/:id', async (req, res) => {
+    try {
+        const { rows: checklistRows } = await pool.query(`SELECT * FROM checklists WHERE id = $1`, [req.params.id]);
+        if (checklistRows.length === 0) return res.status(404).json({ sucesso: false, erro: "Checklist não encontrado" });
+        
+        const checklist = checklistRows[0];
+        const { rows: itens } = await pool.query(`SELECT * FROM checklist_itens WHERE checklist_id = $1`, [req.params.id]);
+        
+        return res.json({ ...checklist, itens: formatarItensComFotos(itens || []) });
+    } catch (err) {
+        return res.status(500).json({ erro: err.message });
+    }
+});
+
+app.patch('/api/checklists/:id/concluir', async (req, res) => {
+    try {
+        await pool.query(`UPDATE checklists SET concluido_por = $1 WHERE id = $2`, [req.body.usuario, req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
 app.delete('/api/checklists/:id', async (req, res) => {
     try {
         await pool.query(`DELETE FROM checklists WHERE id = $1`, [req.params.id]);
@@ -517,39 +541,29 @@ app.delete('/api/checklists/:id', async (req, res) => {
     }
 });
 
-// --- AUTENTICAÇÃO E LOGIN ---
-app.post('/api/login', async (req, res) => {
-    const usuarioParaBuscar = (req.body.usuario || '').trim().toLowerCase();
-    const senha = req.body.senha;
-
-    if (!usuarioParaBuscar || !senha) {
-        return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
-    }
-
+// --- ROTAS PARA OS ITENS DO CHECKLIST ---
+app.patch('/api/checklist-itens/:id/status', async (req, res) => {
     try {
-        const { rows } = await pool.query(
-            `SELECT * FROM usuarios WHERE LOWER(TRIM(usuario)) = $1 AND senha = $2`, 
-            [usuarioParaBuscar, senha]
-        );
-        
-        if (rows[0]) {
-            const user = rows[0];
-            if (user.validado !== true) {
-                return res.status(403).json({ sucesso: false, mensagem: "Sua conta ainda não foi validada pelo usuário Master." });
-            }
-            return res.json({ sucesso: true, usuario: user.usuario, tipo: user.tipo || 'comum' });
-        } else {
-            return res.status(401).json({ sucesso: false, mensagem: "Usuário ou senha inválidos." });
-        }
+        await pool.query(`UPDATE checklist_itens SET status = $1 WHERE id = $2`, [req.body.status, req.params.id]);
+        return res.json({ sucesso: true });
     } catch (err) {
-        return res.status(500).json({ sucesso: false, mensagem: "Erro interno no servidor." });
+        return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
-// Exporta o app para o Vercel Serverless Functions
-if (process.env.NODE_ENV !== 'production') {
-    app.listen(3000, () => {
-        console.log('Servidor rodando na porta 3000 localmente');
-    });
-}
-module.exports = app;
+app.patch('/api/checklist-itens/:id/observacao', async (req, res) => {
+    try {
+        await pool.query(`UPDATE checklist_itens SET observacao = $1 WHERE id = $2`, [req.body.observacao, req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.post('/api/checklist-itens/:id/foto', upload.array('fotos'), async (req, res) => {
+    const itemId = req.params.id;
+    let novosArquivos = [];
+    if (req.files && req.files.length > 0) {
+        novosArquivos = req.files.map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
+    } else if (req.file) {
+        nov
