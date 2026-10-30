@@ -168,7 +168,7 @@ const criarRotaApoio = (caminho, tabela) => {
             const { rows } = await pool.query(`INSERT INTO ${tabela} (nome) VALUES ($1) RETURNING id`, [req.body.nome]);
             return res.json({ sucesso: true, id: rows[0].id });
         } catch (err) {
-            return res.status(500).json({ sucesso: false, sucesso: false, erro: err.message });
+            return res.status(500).json({ sucesso: false, erro: err.message });
         }
     });
 
@@ -205,9 +205,18 @@ criarRotaApoio('/api/setores', 'setores');
 criarRotaApoio('/api/equipamentos', 'equipamentos');
 criarRotaApoio('/api/responsaveis', 'responsaveis');
 
-// --- ROTAS DE CHAMADOS ---
+// --- ROTAS DE CHAMADOS (Versão Blindada e Flexível) ---
 app.post('/api/chamados', upload.single('foto'), async (req, res) => {
-    let { descricao, loja_id, setor_id, equipamento_id, responsavel_id, setor_responsavel_id, criado_por, urgencia } = req.body;
+    let { 
+        descricao, texto, 
+        loja_id, loja, 
+        setor_id, setor, 
+        equipamento_id, equipamento, 
+        responsavel_id, responsavel, 
+        setor_responsavel_id, setor_responsavel, 
+        criado_por, usuario, 
+        urgencia 
+    } = req.body;
     
     let fotoUrl = null;
     if (req.file) {
@@ -215,8 +224,11 @@ app.post('/api/chamados', upload.single('foto'), async (req, res) => {
         fotoUrl = `data:${req.file.mimetype};base64,${base64Data}`;
     }
 
-    const dataAtualLocal = getAgoraBrasil();
+    const descricaoFinal = descricao || texto || 'Sem descrição';
+    const criadoPorFinal = criado_por || usuario || 'Sistema';
     const nivelUrgencia = urgencia || 'Baixa';
+    const dataAtualLocal = getAgoraBrasil();
+
     const parseId = (val) => (!val || isNaN(val)) ? null : parseInt(val);
 
     const query = `INSERT INTO chamados 
@@ -225,13 +237,13 @@ app.post('/api/chamados', upload.single('foto'), async (req, res) => {
     
     try {
         const { rows } = await pool.query(query, [
-            descricao || 'Sem descrição', 
+            descricaoFinal, 
             parseId(loja_id), 
             parseId(setor_id), 
             parseId(equipamento_id), 
             parseId(responsavel_id), 
             parseId(setor_responsavel_id), 
-            criado_por || 'Sistema', 
+            criadoPorFinal, 
             fotoUrl, 
             nivelUrgencia, 
             dataAtualLocal
@@ -268,7 +280,7 @@ app.get('/api/chamados', async (req, res) => {
         });
         return res.json(ajustados);
     } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
+        return res.status(500).json({ erro: err.message });
     }
 });
 
@@ -347,7 +359,7 @@ app.get('/api/ordens-servico', async (req, res) => {
         });
         return res.json(ajustados);
     } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
+        return res.status(500).json({ erro: err.message });
     }
 });
 
@@ -443,7 +455,7 @@ app.get('/api/checklists/:id', async (req, res) => {
         
         return res.json({ ...checklist, itens: formatarItensComFotos(itens || []) });
     } catch (err) {
-        return res.status(500).json({ sucesso: false, erro: err.message });
+        return res.status(500).json({ erro: err.message });
     }
 });
 
@@ -565,7 +577,6 @@ app.post('/api/login', async (req, res) => {
     }
 
     try {
-        // Busca flexível ignorando diferenças de maiúsculas/minúsculas no banco
         const { rows } = await pool.query(
             `SELECT * FROM usuarios WHERE LOWER(TRIM(usuario)) = $1 AND senha = $2`, 
             [usuarioParaBuscar, senha]
