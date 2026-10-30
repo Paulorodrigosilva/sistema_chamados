@@ -111,7 +111,6 @@
                 displayUser.innerText = `👤 Logado como: ${usuarioLogado}`;
             }
             
-            // Preenche o campo de data com o dia de hoje formatado (YYYY-MM-DD)
             const hoje = new Date().toISOString().split('T')[0];
             const inputData = document.getElementById('dataChecklist');
             if (inputData) inputData.value = hoje;
