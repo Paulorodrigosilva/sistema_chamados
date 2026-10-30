@@ -105,7 +105,6 @@
             usuarioLogado = "Administrador";
         }
 
-        // Define a data atual como padrão no input de data ao carregar a página
         window.addEventListener('DOMContentLoaded', () => {
             const displayUser = document.getElementById('usuarioLogadoDisplay');
             if (displayUser) {
@@ -265,7 +264,8 @@
             e.preventDefault();
             const titulo = document.getElementById('tituloChecklist').value;
             const responsavel = document.getElementById('responsavelChecklist').value;
-            const dataEspecifica = document.getElementById('dataChecklist').value; // Pega a data selecionada
+            const dataEspecifica = document.getElementById('dataChecklist').value;
+            
             const inputs = document.querySelectorAll('.item-input');
             const itens = Array.from(inputs).map(input => input.value).filter(val => val.trim() !== '');
 
@@ -281,7 +281,7 @@
                     body: JSON.stringify({ 
                         titulo, 
                         responsavel,
-                        data: dataEspecifica, // Envia a data específica para o backend
+                        data: dataEspecifica, 
                         itens, 
                         usuario: usuarioLogado 
                     })
@@ -291,7 +291,6 @@
                 if (res.ok) {
                     alert(resultado.mensagem || 'Checklist criado com sucesso!');
                     document.getElementById('formChecklist').reset();
-                    // Restaura a data de hoje e o campo de item padrão após limpar
                     document.getElementById('dataChecklist').value = new Date().toISOString().split('T')[0];
                     document.getElementById('itensChecklistContainer').innerHTML = '<input type="text" class="item-input" placeholder="Item 1 do Checklist" required style="width: 300px;"><br>';
                     carregarChecklists();
@@ -308,7 +307,6 @@
                 const res = await fetch('/api/checklists');
                 checklistsGlobais = await res.json();
                 
-                // Ordenação por data (suporta se vier via propriedade `data` do banco ou formatada no título)
                 checklistsGlobais.sort((a, b) => {
                     const dataA = a.data ? new Date(a.data).getTime() : 0;
                     const dataB = b.data ? new Date(b.data).getTime() : 0;
@@ -363,7 +361,6 @@
                 const responsavel = cl.responsavel ? cl.responsavel : 'Não definido';
                 const finalizador = cl.concluido_por ? cl.concluido_por : 'Não concluído / Pendente';
                 
-                // Formata a data para exibição (DD/MM/AAAA) caso venha no formato YYYY-MM-DD
                 let dataFormatada = 'Não informada';
                 if (cl.data) {
                     const partes = cl.data.split('T')[0].split('-');
