@@ -21,13 +21,26 @@
         .status-concluida { background-color: #28a745; }
         .status-cancelada { background-color: #dc3545; }
 
-        /* Estilo para ocultar a tela normal ao imprimir */
-        @media print {
-            body { background: white; margin: 0; }
-            header, .card:not(#print-area), .filtro-container, button, select, textarea, input { display: none !important; }
-            .os-print-layout { display: block !important; }
-        }
+        /* Estilo rigoroso para ocultar todo o painel na impressão e exibir apenas a OS selecionada */
         .os-print-layout { display: none; }
+
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+            #areaImpressao, #areaImpressao * {
+                visibility: visible !important;
+            }
+            #areaImpressao {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -112,7 +125,7 @@
         </div>
     </div>
 
-    <!-- Container Oculto para Impressão Dinâmica -->
+    <!-- Container Exclusivo para Impressão Dinâmica -->
     <div id="areaImpressao" class="os-print-layout"></div>
 
     <script>
@@ -248,7 +261,7 @@
 
         function cancelarServico(id) {
             const motivo = prompt("Informe o motivo da desistência/cancelamento do serviço:");
-            if (motivo === null) return; // Usuário cancelou a janela prompt
+            if (motivo === null) return;
 
             const transaction = db.transaction(['ordens'], 'readwrite');
             const store = transaction.objectStore('ordens');
@@ -285,7 +298,7 @@
             };
         }
 
-        // Layout 1: Térmica (Menos detalhes, formato bobina)
+        // Impressão Térmica (Apenas a OS clicada)
         function imprimirTermica(id) {
             const os = ordensGlobais.find(item => item.id === id);
             if (!os) return;
@@ -321,7 +334,7 @@
             window.print();
         }
 
-        // Layout 2: Padrão A4 Completo
+        // Impressão Padrão A4 (Apenas a OS clicada)
         function imprimirA4(id) {
             const os = ordensGlobais.find(item => item.id === id);
             if (!os) return;
