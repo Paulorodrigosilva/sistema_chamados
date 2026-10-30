@@ -85,7 +85,6 @@ const initDb = async () => {
             data_abertura TIMESTAMP
         )`);
 
-        // Tabela de Planos de Ação corrigida com a coluna tarefas
         await pool.query(`CREATE TABLE IF NOT EXISTS planos_acao (
             id SERIAL PRIMARY KEY,
             titulo TEXT,
@@ -479,3 +478,68 @@ function formatarItensComFotos(itens) {
     return itens.map(item => {
         let fotosArray = [];
         if (item.fotos) {
+            if (Array.isArray(item.fotos)) {
+                fotosArray = item.fotos;
+            } else {
+                try {
+                    const parsed = JSON.parse(item.fotos);
+                    if (Array.isArray(parsed)) fotosArray = parsed;
+                    else if (parsed) fotosArray = [parsed];
+                } catch (e) { fotosArray = [item.fotos]; }
+            }
+        }
+        return { ...item, fotos: fotosArray };
+    });
+}
+
+app.get('/api/checklists', async (req, res) => {
+    try {
+        const { rows: checklists } = await pool.query(`SELECT id, titulo, responsavel, criado_por, concluido_por, data_criacao FROM checklists ORDER BY id DESC`);
+        if (!checklists || checklists.length === 0) return res.json([]);
+
+        const resultados = await Promise.all(checklists.map(async (cl) => {
+            const { rows: itens } = await pool.query(`SELECT * FROM checklist_itens WHERE checklist_id = $1`, [cl.id]);
+            return { ...cl, itens: formatarItensComFotos(itens || []) };
+        }));
+
+        return res.json(resultados);
+    } catch (err) {
+        return res.status(500).json({ erro: err.message });
+    }
+});
+
+app.delete('/api/checklists/:id', async (req, res) => {
+    try {
+        await pool.query(`DELETE FROM checklists WHERE id = $1`, [req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+// --- AUTENTICAÇÃO E LOGIN ---
+app.post('/api/login', async (req, res) => {
+    const usuarioParaBuscar = (req.body.usuario || '').trim().toLowerCase();
+    const senha = req.body.senha;
+
+    if (!usuarioParaBuscar || !senha) {
+        return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
+    }
+
+    try {
+        const { rows } = await pool.query(
+            `SELECT * FROM usuarios WHERE LOWER(TRIM(usuario)) = $1 AND senha = $2`, 
+            [usuarioParaBuscar, senha]
+        );
+        
+        if (rows[0]) {
+            const user = rows[0];
+            if (user.validado !== true) {
+                return res.status(403).json({ sucesso: false, mensagem: "Sua conta ainda não foi validada pelo usuário Master." });
+            }
+            return res.json({ sucesso: true, usuario: user.usuario, tipo: user.tipo || 'comum' });
+        } else {
+            return res.status(401).json({ sucesso: false, mensagem: "Usuário ou senha inválidos." });
+        }
+    } catch (err) {
+        return res.status(500).json({ sucesso: false
