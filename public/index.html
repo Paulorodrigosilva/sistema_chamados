@@ -460,7 +460,7 @@
         </div>
     </div>
 
-    <!-- ================= SCRIPTS DE CONTROLE E VALIDAÇÃO MASTER ================= -->
+    <!-- ================= SCRIPTS DE CONTROLE E VALIDAÇÃO INTEGRADOS AO BACKEND ================= -->
     <script>
         function toggleMenuMobile() {
             document.getElementById('sidebarMenu').classList.toggle('mobile-open');
@@ -515,26 +515,34 @@
             document.getElementById('nomeUsuarioLogado').innerText = nomeFormatado;
         }
 
-        // Validação Direta do Usuário Master (Funciona sem backend/banco na Vercel)
-        document.getElementById('formLogin').addEventListener('submit', (e) => {
+        // Validação integrada com a rota /api/login do servidor PostgreSQL/Neon
+        document.getElementById('formLogin').addEventListener('submit', async (e) => {
             e.preventDefault();
             const usuarioInput = document.getElementById('loginUsuario').value.trim();
             const senhaInput = document.getElementById('loginSenha').value;
 
-            // Suas credenciais Master fixadas para rodar perfeitamente no Front-end
-            const MASTER_USER = "prodrigosilvacel@gmail.com";
-            const MASTER_PASS = "w18187";
+            try {
+                const resposta = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario: usuarioInput, senha: senhaInput })
+                });
 
-            if (usuarioInput === MASTER_USER && senhaInput === MASTER_PASS) {
-                localStorage.setItem('usuarioLogado', MASTER_USER);
-                localStorage.setItem('tipoUsuario', 'administrador');
-                localStorage.setItem('isMaster', 'true');
+                const dados = await resposta.json();
 
-                document.getElementById('telaLoginWrapper').style.display = 'none';
-                configurarPermissoesPainel();
-                document.getElementById('formLogin').reset();
-            } else {
-                alert('Usuário ou senha inválidos.');
+                if (resposta.ok && dados.sucesso) {
+                    localStorage.setItem('usuarioLogado', dados.usuario);
+                    localStorage.setItem('tipoUsuario', dados.tipo || 'comum');
+
+                    document.getElementById('telaLoginWrapper').style.display = 'none';
+                    configurarPermissoesPainel();
+                    document.getElementById('formLogin').reset();
+                } else {
+                    alert(dados.mensagem || 'Usuário ou senha inválidos.');
+                }
+            } catch (err) {
+                console.error("Erro ao fazer login:", err);
+                alert('Erro de conexão com o servidor.');
             }
         });
 
@@ -561,10 +569,32 @@
             carregarPagina('excluir-usuarios.html', document.getElementById('btnExcluirUsuarios'));
         }
 
-        document.getElementById('formAdminCadastro').addEventListener('submit', (e) => {
+        // Cadastro de novos usuários integrado com a rota /api/usuarios do banco
+        document.getElementById('formAdminCadastro').addEventListener('submit', async (e) => {
             e.preventDefault();
-            alert('Usuário cadastrado com sucesso!');
-            fecharModalUsuario();
+            const nome = document.getElementById('novoUsuarioNome').value.trim();
+            const senha = document.getElementById('novoUsuarioSenha').value;
+            const tipo = document.getElementById('novoUsuarioTipo').value;
+
+            try {
+                const resposta = await fetch('/api/usuarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, senha, tipo })
+                });
+
+                const dados = await resposta.json();
+
+                if (resposta.ok && dados.sucesso) {
+                    alert(dados.mensagem || 'Usuário cadastrado com sucesso!');
+                    fecharModalUsuario();
+                } else {
+                    alert(dados.mensagem || 'Erro ao cadastrar usuário.');
+                }
+            } catch (err) {
+                console.error("Erro ao cadastrar usuário:", err);
+                alert('Erro de conexão ao salvar usuário.');
+            }
         });
 
         window.addEventListener('DOMContentLoaded', verificarSessao);
