@@ -169,7 +169,16 @@ const criarRotaApoio = (caminho, tabela) => {
         }
     });
 
-    app.put(`${caminho}/:id`, async (req, res) => { try { await pool.query(`UPDATE ${tabela} SET nome = $1 WHERE id = $2`, [req.body.nome, req.params.id]); return res.json({ sucesso: true, mensagem: "Atualizado com sucesso!" }); } catch (err) { return res.status(500).json({ sucesso: false, erro: err.message }); } });  app.delete(`${caminho}/:id`, async (req, res) => {
+    app.put(`${caminho}/:id`, async (req, res) => { 
+        try { 
+            await pool.query(`UPDATE ${tabela} SET nome = $1 WHERE id = $2`, [req.body.nome, req.params.id]); 
+            return res.json({ sucesso: true, mensagem: "Atualizado com sucesso!" }); 
+        } catch (err) { 
+            return res.status(500).json({ sucesso: false, erro: err.message }); 
+        } 
+    });  
+    
+    app.delete(`${caminho}/:id`, async (req, res) => {
         try {
             await pool.query(`DELETE FROM ${tabela} WHERE id = $1`, [req.params.id]);
             return res.json({ sucesso: true, mensagem: "Excluído com sucesso!" });
@@ -184,9 +193,9 @@ criarRotaApoio('/api/setores', 'setores');
 criarRotaApoio('/api/equipamentos', 'equipamentos');
 criarRotaApoio('/api/responsaveis', 'responsaveis');
 
-// --- ROTAS DE CHAMADOS ---
+// --- ROTAS DE CHAMADOS (Com conversão segura de IDs) ---
 app.post('/api/chamados', upload.single('foto'), async (req, res) => {
-    const { descricao, loja_id, setor_id, equipamento_id, responsavel_id, setor_responsavel_id, criado_por, urgencia } = req.body;
+    let { descricao, loja_id, setor_id, equipamento_id, responsavel_id, setor_responsavel_id, criado_por, urgencia } = req.body;
     
     let fotoUrl = null;
     if (req.file) {
@@ -197,14 +206,28 @@ app.post('/api/chamados', upload.single('foto'), async (req, res) => {
     const dataAtualLocal = getAgoraBrasil();
     const nivelUrgencia = urgencia || 'Baixa';
 
+    const parseId = (val) => (!val || isNaN(val)) ? null : parseInt(val);
+
     const query = `INSERT INTO chamados 
         (descricao, loja_id, setor_id, equipamento_id, responsavel_id, setor_responsavel_id, criado_por, foto, urgencia, status, data_abertura) 
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Aberto', $10) RETURNING id`;
     
     try {
-        const { rows } = await pool.query(query, [descricao, loja_id || null, setor_id || null, equipamento_id || null, responsavel_id || null, setor_responsavel_id || null, criado_por, fotoUrl, nivelUrgencia, dataAtualLocal]);
+        const { rows } = await pool.query(query, [
+            descricao || 'Sem descrição', 
+            parseId(loja_id), 
+            parseId(setor_id), 
+            parseId(equipamento_id), 
+            parseId(responsavel_id), 
+            parseId(setor_responsavel_id), 
+            criado_por || 'Sistema', 
+            fotoUrl, 
+            nivelUrgencia, 
+            dataAtualLocal
+        ]);
         return res.json({ sucesso: true, id: rows[0].id, mensagem: "Chamado aberto com sucesso!" });
     } catch (err) {
+        console.error("Erro ao inserir chamado:", err.message);
         return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
@@ -299,7 +322,10 @@ app.post('/api/checklists', async (req, res) => {
             const checklistId = rows[0].id;
 
             for (const item of itens) {
-                await pool.query(`INSERT INTO checklist_itens (checklist_id, descricao) VALUES ($1, $2)`, [checklistId, item]); } } return res.json({ sucesso: true, mensagem: `${totalCriar} checklist(s) criado(s) com sucesso!` });
+                await pool.query(`INSERT INTO checklist_itens (checklist_id, descricao) VALUES ($1, $2)`, [checklistId, item]); 
+            } 
+        } 
+        return res.json({ sucesso: true, mensagem: `${totalCriar} checklist(s) criado(s) com sucesso!` });
     } catch (err) {
         return res.status(500).json({ sucesso: false, erro: err.message });
     }
@@ -371,4 +397,113 @@ app.patch('/api/checklists/:id/concluir', async (req, res) => {
 
 app.delete('/api/checklists/:id', async (req, res) => {
     try {
-        await pool.query(`DELETE FROM checklists WHERE
+        await pool.query(`DELETE FROM checklists WHERE id = $1`, [req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+// --- ROTAS PARA OS ITENS DO CHECKLIST ---
+app.patch('/api/checklist-itens/:id/status', async (req, res) => {
+    try {
+        await pool.query(`UPDATE checklist_itens SET status = $1 WHERE id = $2`, [req.body.status, req.params.id]);
+        return res.json({ sucesso: true, mensagem: 'Status atualizado com sucesso!' });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.patch('/api/checklist-itens/:id/observacao', async (req, res) => {
+    try {
+        await pool.query(`UPDATE checklist_itens SET observacao = $1 WHERE id = $2`, [req.body.observacao, req.params.id]);
+        return res.json({ sucesso: true, mensagem: 'Observação salva com sucesso!' });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.patch('/api/checklist-itens/:id/toggle', async (req, res) => {
+    try {
+        await pool.query(`UPDATE checklist_itens SET concluido = $1 WHERE id = $2`, [req.body.concluido ? 1 : 0, req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.post('/api/checklist-itens/:id/foto', upload.array('fotos'), async (req, res) => {
+    const itemId = req.params.id;
+
+    let novosArquivos = [];
+    if (req.files && req.files.length > 0) {
+        novosArquivos = req.files.map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
+    } else if (req.file) {
+        novosArquivos = [`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`];
+    }
+
+    if (novosArquivos.length === 0) {
+        return res.status(400).json({ sucesso: false, mensagem: "Nenhuma foto enviada." });
+    }
+
+    try {
+        const { rows } = await pool.query(`SELECT fotos FROM checklist_itens WHERE id = $1`, [itemId]);
+        const row = rows[0];
+
+        let listaAtual = [];
+        try {
+            if (row && row.fotos) listaAtual = JSON.parse(row.fotos);
+        } catch (e) {
+            if (row && row.fotos) listaAtual = [row.fotos];
+        }
+
+        const listaFinal = [...listaAtual, ...novosArquivos];
+
+        await pool.query(`UPDATE checklist_itens SET fotos = $1 WHERE id = $2`, [JSON.stringify(listaFinal), itemId]);
+        return res.json({ sucesso: true, fotos: listaFinal });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+// --- AUTENTICAÇÃO E CADASTRO ---
+app.post('/api/cadastro', async (req, res) => {
+    const usuarioParaSalvar = (req.body.usuario || req.body.nome || '').trim();
+    const senha = req.body.senha;
+    const tipo = (req.body.tipo || 'comum').trim();
+
+    if (!usuarioParaSalvar || !senha) return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
+
+    try {
+        await pool.query(`INSERT INTO usuarios (usuario, senha, tipo) VALUES ($1, $2, $3)`, [usuarioParaSalvar, senha, tipo]);
+        return res.json({ sucesso: true, mensagem: "Usuário cadastrado com sucesso!" });
+    } catch (err) {
+        return res.status(400).json({ sucesso: false, mensagem: "Usuário já existente ou inválido." });
+    }
+});
+
+app.post('/api/login', async (req, res) => {
+    const usuarioParaBuscar = (req.body.usuario || '').trim();
+    const senha = req.body.senha;
+
+    if (!usuarioParaBuscar || !senha) return res.status(400).json({ sucesso: false, mensagem: "Usuário e senha são obrigatórios." });
+
+    try {
+        const { rows } = await pool.query(`SELECT * FROM usuarios WHERE usuario = $1 AND senha = $2`, [usuarioParaBuscar, senha]);
+        if (rows[0]) {
+            return res.json({ sucesso: true, usuario: rows[0].usuario, tipo: rows[0].tipo || 'comum' });
+        } else {
+            return res.status(401).json({ sucesso: false, mensagem: "Usuário ou senha inválidos." });
+        }
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, mensagem: "Erro interno no servidor." });
+    }
+});
+
+// Exporta o app para o Vercel Serverless Functions
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(3000, () => {
+        console.log('Servidor rodando na porta 3000 localmente');
+    });
+}
+module.exports = app;
