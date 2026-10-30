@@ -14,10 +14,10 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Configura o caminho absoluto para a pasta 'public' (onde fica o front-end e o index.html)
+// Configura o caminho absoluto para a pasta 'public'
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Configuração do Multer para MEMÓRIA (Vercel não suporta gravação em disco)
+// Configuração do Multer para MEMÓRIA
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
@@ -51,7 +51,6 @@ const initDb = async () => {
             validado BOOLEAN DEFAULT FALSE
         )`);
 
-        // Garante a coluna 'validado' caso a tabela já exista sem ela
         await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS validado BOOLEAN DEFAULT FALSE`);
 
         await pool.query(`CREATE TABLE IF NOT EXISTS lojas (id SERIAL PRIMARY KEY, nome TEXT)`);
@@ -86,7 +85,7 @@ const initDb = async () => {
             data_abertura TIMESTAMP
         )`);
 
-        // Tabela de Planos de Ação (com suporte a tarefas/etapas em JSON)
+        // Tabela de Planos de Ação corrigida com a coluna tarefas
         await pool.query(`CREATE TABLE IF NOT EXISTS planos_acao (
             id SERIAL PRIMARY KEY,
             titulo TEXT,
@@ -97,7 +96,6 @@ const initDb = async () => {
             data_criacao TIMESTAMP
         )`);
         
-        // Garante a coluna 'tarefas' caso a tabela já exista sem ela
         await pool.query(`ALTER TABLE planos_acao ADD COLUMN IF NOT EXISTS tarefas TEXT`);
 
         await pool.query(`CREATE TABLE IF NOT EXISTS checklists (
@@ -126,17 +124,16 @@ const initDb = async () => {
 
 initDb();
 
-// --- ROTA RAIZ (Resolve o erro "Cannot GET /" na Vercel) ---
+// --- ROTA RAIZ ---
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// --- ROTAS DE CADASTRO E GERENCIAMENTO DE USUÁRIOS ---
+// --- ROTAS DE USUÁRIOS ---
 app.post('/api/usuarios', async (req, res) => {
     const { nome, senha, tipo } = req.body;
     const usuarioParaSalvar = (nome || req.body.usuario || '').trim().toLowerCase();
     const tipoUsuario = (tipo || 'comum').trim();
-    
     const validado = req.body.validado !== undefined ? req.body.validado : (tipoUsuario === 'master' || tipoUsuario === 'administrador');
 
     if (!usuarioParaSalvar || !senha) {
@@ -148,9 +145,9 @@ app.post('/api/usuarios', async (req, res) => {
             `INSERT INTO usuarios (usuario, senha, tipo, validado) VALUES ($1, $2, $3, $4)`, 
             [usuarioParaSalvar, senha, tipoUsuario, validado]
         );
-        return res.json({ sucesso: true, mensagem: "Usuário cadastrado com sucesso! " + (!validado ? "Aguardando validação do Master." : "") });
+        return res.json({ sucesso: true, mensagem: "Usuário cadastrado com sucesso!" });
     } catch (err) {
-        return res.status(400).json({ sucesso: false, mensagem: "Erro ao cadastrar usuário (já existente ou inválido)." });
+        return res.status(400).json({ sucesso: false, mensagem: "Erro ao cadastrar usuário." });
     }
 });
 
@@ -167,8 +164,7 @@ app.put('/api/usuarios/:id', async (req, res) => {
     const { id } = req.params;
     const { usuario, tipo } = req.body;
     try {
-        const { rowCount } = await pool.query(`UPDATE usuarios SET usuario = $1, tipo = $2 WHERE id = $3`, [usuario.trim().toLowerCase(), tipo.trim(), id]);
-        if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado." });
+        await pool.query(`UPDATE usuarios SET usuario = $1, tipo = $2 WHERE id = $3`, [usuario.trim().toLowerCase(), tipo.trim(), id]);
         return res.json({ sucesso: true, mensagem: "Usuário atualizado com sucesso!" });
     } catch (err) {
         return res.status(500).json({ sucesso: false, mensagem: err.message });
@@ -176,10 +172,8 @@ app.put('/api/usuarios/:id', async (req, res) => {
 });
 
 app.put('/api/usuarios/:id/validar', async (req, res) => {
-    const { id } = req.params;
     try {
-        const { rowCount } = await pool.query(`UPDATE usuarios SET validado = TRUE WHERE id = $1`, [id]);
-        if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado." });
+        await pool.query(`UPDATE usuarios SET validado = TRUE WHERE id = $1`, [req.params.id]);
         return res.json({ sucesso: true, mensagem: "Usuário validado com sucesso!" });
     } catch (err) {
         return res.status(500).json({ sucesso: false, mensagem: err.message });
@@ -187,16 +181,8 @@ app.put('/api/usuarios/:id/validar', async (req, res) => {
 });
 
 app.put('/api/usuarios/:id/senha', async (req, res) => {
-    const { id } = req.params;
-    const { senha } = req.body;
-
-    if (!senha) {
-        return res.status(400).json({ sucesso: false, mensagem: "A nova senha é obrigatória." });
-    }
-
     try {
-        const { rowCount } = await pool.query(`UPDATE usuarios SET senha = $1 WHERE id = $2`, [senha, id]);
-        if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado." });
+        await pool.query(`UPDATE usuarios SET senha = $1 WHERE id = $2`, [req.body.senha, req.params.id]);
         return res.json({ sucesso: true, mensagem: "Senha alterada com sucesso!" });
     } catch (err) {
         return res.status(500).json({ sucesso: false, mensagem: err.message });
@@ -205,15 +191,14 @@ app.put('/api/usuarios/:id/senha', async (req, res) => {
 
 app.delete('/api/usuarios/:id', async (req, res) => {
     try {
-        const { rowCount } = await pool.query(`DELETE FROM usuarios WHERE id = $1`, [req.params.id]);
-        if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Usuário não encontrado." });
+        await pool.query(`DELETE FROM usuarios WHERE id = $1`, [req.params.id]);
         return res.json({ sucesso: true, mensagem: "Usuário excluído com sucesso!" });
     } catch (err) {
         return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
-// --- ROTAS DE APOIO (Lojas, Setores, Equipamentos, Responsáveis) ---
+// --- ROTAS DE APOIO ---
 const criarRotaApoio = (caminho, tabela) => {
     app.post(caminho, async (req, res) => {
         try {
@@ -260,55 +245,37 @@ criarRotaApoio('/api/responsaveis', 'responsaveis');
 // --- ROTAS DE CHAMADOS ---
 app.post('/api/chamados', upload.single('foto'), async (req, res) => {
     let { descricao, loja_id, setor_id, equipamento_id, responsavel_id, setor_responsavel_id, criado_por, urgencia } = req.body;
-    
     let fotoUrl = null;
     if (req.file) {
-        const base64Data = req.file.buffer.toString('base64');
-        fotoUrl = `data:${req.file.mimetype};base64,${base64Data}`;
+        fotoUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
     }
-
     const dataAtualLocal = getAgoraBrasil();
-    const nivelUrgencia = urgencia || 'Baixa';
     const parseId = (val) => (!val || isNaN(val)) ? null : parseInt(val);
 
-    const query = `INSERT INTO chamados 
-        (descricao, loja_id, setor_id, equipamento_id, responsavel_id, setor_responsavel_id, criado_por, foto, urgencia, status, data_abertura) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Aberto', $10) RETURNING id`;
-    
     try {
-        const { rows } = await pool.query(query, [
-            descricao || 'Sem descrição', 
-            parseId(loja_id), 
-            parseId(setor_id), 
-            parseId(equipamento_id), 
-            parseId(responsavel_id), 
-            parseId(setor_responsavel_id), 
-            criado_por || 'Sistema', 
-            fotoUrl, 
-            nivelUrgencia, 
-            dataAtualLocal
-        ]);
+        const { rows } = await pool.query(
+            `INSERT INTO chamados (descricao, loja_id, setor_id, equipamento_id, responsavel_id, setor_responsavel_id, criado_por, foto, urgencia, status, data_abertura) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'Aberto', $10) RETURNING id`,
+            [descricao || 'Sem descrição', parseId(loja_id), parseId(setor_id), parseId(equipamento_id), parseId(responsavel_id), parseId(setor_responsavel_id), criado_por || 'Sistema', fotoUrl, urgencia || 'Baixa', dataAtualLocal]
+        );
         return res.json({ sucesso: true, id: rows[0].id, mensagem: "Chamado aberto com sucesso!" });
     } catch (err) {
-        console.error("Erro ao inserir chamado:", err.message);
         return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
 app.get('/api/chamados', async (req, res) => {
-    const query = `
-        SELECT c.id, c.descricao, c.status, c.urgencia, c.data_abertura, c.criado_por, c.foto as foto_url,
-               l.nome as loja, s.nome as setor, e.nome as equipamento, r.nome as responsavel, sr.nome as setor_responsavel
-        FROM chamados c
-        LEFT JOIN lojas l ON c.loja_id = l.id
-        LEFT JOIN setores s ON c.setor_id = s.id
-        LEFT JOIN equipamentos e ON c.equipamento_id = e.id
-        LEFT JOIN responsaveis r ON c.responsavel_id = r.id
-        LEFT JOIN setores sr ON c.setor_responsavel_id = sr.id
-        ORDER BY c.data_abertura DESC
-    `;
     try {
-        const { rows } = await pool.query(query);
+        const { rows } = await pool.query(`
+            SELECT c.id, c.descricao, c.status, c.urgencia, c.data_abertura, c.criado_por, c.foto as foto_url,
+                   l.nome as loja, s.nome as setor, e.nome as equipamento, r.nome as responsavel, sr.nome as setor_responsavel
+            FROM chamados c
+            LEFT JOIN lojas l ON c.loja_id = l.id
+            LEFT JOIN setores s ON c.setor_id = s.id
+            LEFT JOIN equipamentos e ON c.equipamento_id = e.id
+            LEFT JOIN responsaveis r ON c.responsavel_id = r.id
+            LEFT JOIN setores sr ON c.setor_responsavel_id = sr.id
+            ORDER BY c.data_abertura DESC
+        `);
         const ajustados = rows.map(row => {
             if (row.data_abertura) {
                 const dt = new Date(row.data_abertura);
@@ -326,9 +293,8 @@ app.get('/api/chamados', async (req, res) => {
 
 app.patch('/api/chamados/:id/descricao', async (req, res) => {
     try {
-        const { rowCount } = await pool.query(`UPDATE chamados SET descricao = $1 WHERE id = $2`, [req.body.descricao, req.params.id]);
-        if (rowCount === 0) return res.status(404).json({ sucesso: false, mensagem: "Chamado não encontrado." });
-        return res.json({ sucesso: true, mensagem: "Descrição atualizada com sucesso!" });
+        await pool.query(`UPDATE chamados SET descricao = $1 WHERE id = $2`, [req.body.descricao, req.params.id]);
+        return res.json({ sucesso: true, mensagem: "Descrição atualizada!" });
     } catch (err) {
         return res.status(500).json({ sucesso: false, erro: err.message });
     }
@@ -337,10 +303,8 @@ app.patch('/api/chamados/:id/descricao', async (req, res) => {
 app.patch('/api/chamados/:id/:campo', async (req, res) => {
     const camposPermitidos = ['status', 'urgencia', 'responsavel_id', 'setor_responsavel_id'];
     const { campo } = req.params;
-    
     if (!camposPermitidos.includes(campo)) return res.status(400).json({ sucesso: false, erro: "Campo inválido" });
-    
-    const valor = req.body[campo] || req.body.status || req.body.urgencia; 
+    const valor = req.body[campo] || req.body.status || req.body.urgencia;
 
     try {
         await pool.query(`UPDATE chamados SET ${campo} = $1 WHERE id = $2`, [valor, req.params.id]);
@@ -353,33 +317,165 @@ app.patch('/api/chamados/:id/:campo', async (req, res) => {
 app.delete('/api/chamados/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM chamados WHERE id = $1', [req.params.id]);
-        return res.json({ sucesso: true, mensagem: "Chamado excluído com sucesso!" });
+        return res.json({ sucesso: true });
     } catch (err) {
         return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
 
-// --- ROTAS DE ORDENS DE SERVIÇO (O.S.) ---
+// --- ROTAS DE ORDENS DE SERVIÇO ---
 app.post('/api/ordens-servico', async (req, res) => {
     const { cliente, equipamento, prioridade, tecnico, defeito } = req.body;
     const dataAtualLocal = getAgoraBrasil();
-
-    const query = `INSERT INTO ordens_servico 
-        (cliente, equipamento, prioridade, tecnico, defeito, status, data_abertura) 
-        VALUES ($1, $2, $3, $4, $5, 'Aberta', $6) RETURNING id`;
-    
     try {
-        const { rows } = await pool.query(query, [
-            cliente || 'Não informado',
-            equipamento || 'Não informado',
-            prioridade || 'Média',
-            tecnico || 'Sistema',
-            defeito || 'Sem descrição',
-            dataAtualLocal
-        ]);
-        return res.json({ sucesso: true, id: rows[0].id, mensagem: "Ordem de Serviço aberta com sucesso!" });
+        const { rows } = await pool.query(
+            `INSERT INTO ordens_servico (cliente, equipamento, prioridade, tecnico, defeito, status, data_abertura) VALUES ($1, $2, $3, $4, $5, 'Aberta', $6) RETURNING id`,
+            [cliente || 'Não informado', equipamento || 'Não informado', prioridade || 'Média', tecnico || 'Sistema', defeito || 'Sem descrição', dataAtualLocal]
+        );
+        return res.json({ sucesso: true, id: rows[0].id });
     } catch (err) {
-        console.error("Erro ao inserir O.S.:", err.message);
         return res.status(500).json({ sucesso: false, erro: err.message });
     }
 });
+
+app.get('/api/ordens-servico', async (req, res) => {
+    try {
+        const { rows } = await pool.query(`SELECT * FROM ordens_servico ORDER BY data_abertura DESC`);
+        const ajustados = rows.map(row => {
+            if (row.data_abertura) {
+                const dt = new Date(row.data_abertura);
+                if (!isNaN(dt.getTime())) {
+                    row.data_abertura = dt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                }
+            }
+            return row;
+        });
+        return res.json(ajustados);
+    } catch (err) {
+        return res.status(500).json({ erro: err.message });
+    }
+});
+
+app.patch('/api/ordens-servico/:id/status', async (req, res) => {
+    try {
+        const { status, laudo } = req.body;
+        await pool.query(`UPDATE ordens_servico SET status = $1, laudo = COALESCE($2, laudo) WHERE id = $3`, [status, laudo, req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.delete('/api/ordens-servico/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM ordens_servico WHERE id = $1', [req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+// --- ROTAS DE PLANOS DE AÇÃO ---
+app.post('/api/planos-acao', async (req, res) => {
+    const { titulo, descricao, responsavel, tarefas, status } = req.body;
+    const dataAtualLocal = getAgoraBrasil();
+
+    try {
+        const { rows } = await pool.query(
+            `INSERT INTO planos_acao (titulo, descricao, responsavel, tarefas, status, data_criacao) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+            [titulo || 'Sem título', descricao || 'Sem descrição', responsavel || 'Não definido', JSON.stringify(tarefas || []), status || 'Pendente', dataAtualLocal]
+        );
+        return res.json({ sucesso: true, id: rows[0].id });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.get('/api/planos-acao', async (req, res) => {
+    try {
+        const { rows } = await pool.query(`SELECT * FROM planos_acao ORDER BY data_criacao DESC`);
+        const ajustados = rows.map(row => {
+            if (row.data_criacao) {
+                const dt = new Date(row.data_criacao);
+                if (!isNaN(dt.getTime())) {
+                    row.data_criacao = dt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                }
+            }
+            return row;
+        });
+        return res.json(ajustados);
+    } catch (err) {
+        return res.status(500).json({ erro: err.message });
+    }
+});
+
+app.put('/api/planos-acao/:id', async (req, res) => {
+    const { id } = req.params;
+    const { titulo, descricao, responsavel, tarefas, status } = req.body;
+
+    try {
+        await pool.query(
+            `UPDATE planos_acao SET titulo = $1, descricao = $2, responsavel = $3, tarefas = $4, status = $5 WHERE id = $6`,
+            [titulo, descricao, responsavel, JSON.stringify(tarefas || []), status, id]
+        );
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.patch('/api/planos-acao/:id/status', async (req, res) => {
+    try {
+        await pool.query(`UPDATE planos_acao SET status = $1 WHERE id = $2`, [req.body.status, req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+app.delete('/api/planos-acao/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM planos_acao WHERE id = $1', [req.params.id]);
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+// --- ROTAS DE CHECKLISTS ---
+app.post('/api/checklists', async (req, res) => {
+    const { titulo, responsavel, itens, dias = 1, usuario } = req.body;
+    if (!titulo || !itens || itens.length === 0) {
+        return res.status(400).json({ sucesso: false, mensagem: "Título e itens são obrigatórios." });
+    }
+
+    const totalCriar = parseInt(dias) || 1;
+    const dataAtualLocal = getAgoraBrasil();
+
+    try {
+        for (let i = 0; i < totalCriar; i++) {
+            const dataAlvo = new Date();
+            dataAlvo.setDate(dataAlvo.getDate() + i);
+            const dataFormatada = dataAlvo.toLocaleDateString('pt-BR');
+            const tituloFinal = totalCriar > 1 ? `${titulo} (${dataFormatada})` : titulo;
+
+            const { rows } = await pool.query(
+                `INSERT INTO checklists (titulo, responsavel, criado_por, data_criacao) VALUES ($1, $2, $3, $4) RETURNING id`, 
+                [tituloFinal, responsavel || 'Não definido', usuario || 'Desconhecido', dataAtualLocal]
+            );
+            
+            const checklistId = rows[0].id;
+            for (const item of itens) {
+                await pool.query(`INSERT INTO checklist_itens (checklist_id, descricao) VALUES ($1, $2)`, [checklistId, item]); 
+            } 
+        } 
+        return res.json({ sucesso: true });
+    } catch (err) {
+        return res.status(500).json({ sucesso: false, erro: err.message });
+    }
+});
+
+function formatarItensComFotos(itens) {
+    return itens.map(item => {
+        let fotosArray = [];
+        if (item.fotos) {
