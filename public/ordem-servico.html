@@ -196,6 +196,11 @@
                         <button type="button" onclick="salvarLaudo(${os.id})" style="background-color: #007bff; font-size: 12px; padding: 5px 12px;">Salvar Laudo</button>
                     </div>
 
+                    <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" onclick="imprimirOS(${os.id}, 'fiscal')" style="background-color: #17a2b8; font-size: 12px; padding: 6px 12px;">🖨️ Imprimir (Térmica/Fiscal)</button>
+                        <button type="button" onclick="imprimirOS(${os.id}, 'a4')" style="background-color: #6c757d; font-size: 12px; padding: 6px 12px;">📄 Imprimir (A4)</button>
+                    </div>
+
                     <div class="os-info" style="margin-top: 8px; font-size: 12px; color: #6c757d;">
                         📅 Aberta em ${os.data_abertura || 'Data N/D'} | Status atual: <span class="badge ${classeStatus}">${os.status}</span>
                     </div>
@@ -234,6 +239,63 @@
                 await fetch(`/api/ordens-servico/${id}`, { method: 'DELETE' });
                 carregarOS();
             } catch (err) { console.error(err); }
+        }
+
+        function imprimirOS(id, tipo) {
+            const os = ordensGlobais.find(o => o.id === id);
+            if (!os) return;
+
+            const area = document.getElementById('areaImpressao');
+
+            if (tipo === 'fiscal') {
+                area.style.fontFamily = 'monospace';
+                area.style.fontSize = '12px';
+                area.style.width = '300px';
+                area.style.padding = '10px';
+                area.style.color = '#000';
+                area.innerHTML = `
+                    <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">ORDEM DE SERVIÇO #${os.id}</div>
+                    <div style="border-bottom: 1px dashed #000; margin-bottom: 5px;"></div>
+                    <div><strong>Data:</strong> ${os.data_abertura || ''}</div>
+                    <div><strong>Cliente:</strong> ${os.cliente}</div>
+                    <div><strong>Equipamento:</strong> ${os.equipamento}</div>
+                    <div><strong>Prioridade:</strong> ${os.prioridade}</div>
+                    <div><strong>Técnico:</strong> ${os.tecnico}</div>
+                    <div style="border-bottom: 1px dashed #000; margin: 5px 0;"></div>
+                    <div><strong>Defeito:</strong><br>${os.defeito}</div>
+                    <div style="border-bottom: 1px dashed #000; margin: 5px 0;"></div>
+                    <div><strong>Laudo:</strong><br>${os.laudo || 'Pendente'}</div>
+                    <div style="border-bottom: 1px dashed #000; margin: 5px 0;"></div>
+                    <div style="text-align: center; margin-top: 10px;">Ass: ______________________</div>
+                `;
+            } else {
+                area.style.fontFamily = 'Arial, sans-serif';
+                area.style.fontSize = '14px';
+                area.style.width = '100%';
+                area.style.padding = '20px';
+                area.style.color = '#000';
+                area.innerHTML = `
+                    <div style="border: 2px solid #000; padding: 20px; border-radius: 6px;">
+                        <h2 style="text-align: center; margin-top: 0;">ORDEM DE SERVIÇO Nº ${os.id}</h2>
+                        <hr style="border: 1px solid #000;">
+                        <p><strong>Data de Abertura:</strong> ${os.data_abertura || ''}</p>
+                        <p><strong>Cliente / Empresa:</strong> ${os.cliente}</p>
+                        <p><strong>Equipamento:</strong> ${os.equipamento}</p>
+                        <p><strong>Prioridade:</strong> ${os.prioridade} | <strong>Técnico:</strong> ${os.tecnico}</p>
+                        <hr style="border: 0.5px solid #ccc;">
+                        <p><strong>Defeito Relatado:</strong><br>${os.defeito}</p>
+                        <hr style="border: 0.5px solid #ccc;">
+                        <p><strong>Laudo / Ação Técnica Realizada:</strong><br>${os.laudo || 'Aguardando laudo técnico...'}</p>
+                        <br><br><br>
+                        <div style="display: flex; justify-content: space-between; text-align: center;">
+                            <div>___________________________________<br>Assinatura do Técnico</div>
+                            <div>___________________________________<br>Assinatura do Cliente</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            window.print();
         }
 
         function filtrarOS() {
