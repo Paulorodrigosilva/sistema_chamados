@@ -279,7 +279,7 @@
                 console.error("Erro ao buscar chamados:", e);
             }
 
-            // 2. Busca Ordens de Serviço do Servidor
+            // 2. Busca Ordens de Serviço do Servidor (PostgreSQL)
             try {
                 const resOS = await fetch('/api/ordens-servico');
                 if (resOS.ok) {
@@ -292,10 +292,10 @@
                             equipamento: os.equipamento || '-',
                             descricao: os.defeito || '-',
                             titulo: `OS #${os.id} - ${os.cliente || 'Cliente'}`,
-                            detalhes: `Equipamento: ${os.equipamento || '-'} | Defeito: ${os.defeito || '-'}`,
+                            detalhes: `Equipamento: ${os.equipamento || '-'} | Defeito: ${os.defeito || '-'} | Laudo: ${os.laudo || 'Pendente'}`,
                             responsavel: os.tecnico || 'Não atribuído',
                             status: os.status || 'Aberta',
-                            data: formatarDataBR(os.data_abertura)
+                            data: formatarDataBR(os.data_abertura || os.dataAbertura)
                         });
                     });
                 }
@@ -463,65 +463,3 @@
                 let matchStatus = true;
                 if (statusFiltro) {
                     if (statusFiltro === 'aberto') {
-                        matchStatus = statusItem.includes('aberto') || statusItem.includes('aber') || statusItem.includes('andamento');
-                    } else if (statusFiltro === 'concluído') {
-                        matchStatus = statusItem.includes('concluído') || statusItem.includes('concluída') || statusItem.includes('finalizado');
-                    } else {
-                        matchStatus = statusItem.includes(statusFiltro);
-                    }
-                }
-
-                const matchTexto = !textoBusca || 
-                                   item.titulo.toLowerCase().includes(textoBusca) || 
-                                   item.detalhes.toLowerCase().includes(textoBusca) || 
-                                   item.responsavel.toLowerCase().includes(textoBusca);
-
-                return matchTipo && matchStatus && matchTexto;
-            });
-
-            renderizarTabela(filtrados);
-        }
-
-        function limparFiltros() {
-            document.getElementById('filtroTipo').value = '';
-            document.getElementById('filtroStatus').value = '';
-            document.getElementById('filtroBusca').value = '';
-            renderizarTabela(dadosGlobais);
-        }
-
-        function exportarCSV() {
-            if (!dadosFiltradosAtuais || dadosFiltradosAtuais.length === 0) {
-                alert("Não há dados para exportar com o filtro atual.");
-                return;
-            }
-
-            let csvContent = "\uFEFF";
-            csvContent += "Tipo;Identificação;Detalhes;Responsável;Status;Data\n";
-
-            dadosFiltradosAtuais.forEach(item => {
-                const tipo = `"${(item.tipo || '').replace(/"/g, '""')}"`;
-                const identificacao = `"${(item.identificacao || '').replace(/"/g, '""')}"`;
-                const detalhes = `"${(item.detalhes || '').replace(/"/g, '""').replace(/[\r\n]+/g, ' ')}"`;
-                const responsavel = `"${(item.responsavel || '').replace(/"/g, '""')}"`;
-                const status = `"${(item.status || '').replace(/"/g, '""')}"`;
-                const data = `"${(item.data || '').replace(/"/g, '""')}"`;
-
-                csvContent += `${tipo};${identificacao};${detalhes};${responsavel};${status};${data}\n`;
-            });
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            
-            const dataAtual = new Date().toISOString().slice(0, 10);
-            link.setAttribute("href", url);
-            link.setAttribute("download", `relatorio_geral_${dataAtual}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        window.onload = carregarDados;
-    </script>
-</body>
-</html>
