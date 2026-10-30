@@ -14,6 +14,10 @@
         .plano-box { border: 1px solid #ced4da; padding: 15px; border-radius: 6px; margin-bottom: 15px; background: #fff; }
         .tarefa-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; background: #f1f3f5; padding: 8px; border-radius: 4px; }
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; background-color: #17a2b8; }
+        
+        /* Estilos do Modal de Edição */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; padding: 15px; overflow-y: auto; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -53,7 +57,7 @@
                 </div>
             </div>
 
-            <button type="button" onclick="adicionarLinhaTarefa()" style="background-color: #6c757d; margin-top: 5px; margin-bottom: 15px;">+ Adicionar Nova Etapa</button>
+            <button type="button" onclick="adicionarLinhaTarefa('containerTarefas')" style="background-color: #6c757d; margin-top: 5px; margin-bottom: 15px;">+ Adicionar Nova Etapa</button>
             <br>
             <button type="submit" style="background-color: #28a745; font-size: 15px; font-weight: bold; padding: 10px 20px;">Salvar Plano de Ação</button>
         </form>
@@ -66,6 +70,40 @@
         </div>
 
         <div id="listaPlanos">Carregando planos de ação...</div>
+    </div>
+
+    <!-- Modal de Edição de Plano -->
+    <div id="modalEdicao" class="modal-overlay">
+        <div class="modal-content">
+            <h3>✏️ Editar Plano de Ação & Etapas</h3>
+            <form id="formEditarPlano">
+                <input type="hidden" id="editPlanoId">
+                <label>Título:</label>
+                <input type="text" id="editTitulo" required style="width: 100%;">
+                
+                <label>Responsável Geral:</label>
+                <input type="text" id="editResponsavel" required style="width: 100%;">
+
+                <label>Descrição / Objetivo:</label>
+                <textarea id="editDescricao" required style="width: 100%; height: 60px;"></textarea>
+
+                <label>Status:</label>
+                <select id="editStatus" style="width: 100%;">
+                    <option value="Pendente">Pendente</option>
+                    <option value="Em Andamento">Em Andamento</option>
+                    <option value="Concluído">Concluído</option>
+                </select>
+
+                <h4 style="margin-top: 15px; margin-bottom: 8px;">Etapas / Ações:</h4>
+                <div id="editContainerTarefas"></div>
+                <button type="button" onclick="adicionarLinhaTarefa('editContainerTarefas')" style="background-color: #6c757d; font-size: 12px; margin-top: 5px; margin-bottom: 15px;">+ Adicionar Nova Etapa</button>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                    <button type="button" onclick="fecharModal()" style="background-color: #6c757d;">Cancelar</button>
+                    <button type="submit" style="background-color: #28a745;">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
@@ -83,33 +121,29 @@
             document.getElementById('tituloPlano').focus();
         }
 
-        function adicionarLinhaTarefa() {
-            const container = document.getElementById('containerTarefas');
+        function adicionarLinhaTarefa(containerId, acao = '', responsavel = '', prazo = '') {
+            const container = document.getElementById(containerId);
             const row = document.createElement('div');
             row.className = 'tarefa-row';
             row.innerHTML = `
-                <input type="text" class="tarefa-acao" placeholder="O que fazer (Ação)" required style="flex: 2; min-width: 200px; margin-bottom: 0;">
-                <input type="text" class="tarefa-responsavel" placeholder="Quem vai fazer" required style="flex: 1; min-width: 130px; margin-bottom: 0;">
-                <input type="date" class="tarefa-prazo" required style="width: 140px; margin-bottom: 0;">
+                <input type="text" class="tarefa-acao" value="${acao}" placeholder="O que fazer (Ação)" required style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                <input type="text" class="tarefa-responsavel" value="${responsavel}" placeholder="Quem vai fazer" required style="flex: 1; min-width: 130px; margin-bottom: 0;">
+                <input type="date" class="tarefa-prazo" value="${prazo}" required style="width: 140px; margin-bottom: 0;">
                 <button type="button" onclick="this.parentElement.remove()" style="background-color: #dc3545; padding: 7px 10px; font-size: 12px; margin-bottom: 0;">✕</button>
             `;
             container.appendChild(row);
         }
 
+        // Criar Novo Plano
         document.getElementById('formPlano').addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            const acoesInputs = document.querySelectorAll('.tarefa-acao');
-            const respInputs = document.querySelectorAll('.tarefa-responsavel');
-            const prazoInputs = document.querySelectorAll('.tarefa-prazo');
+            const acoes = document.querySelectorAll('#containerTarefas .tarefa-acao');
+            const resps = document.querySelectorAll('#containerTarefas .tarefa-responsavel');
+            const prazos = document.querySelectorAll('#containerTarefas .tarefa-prazo');
 
             let tarefas = [];
-            for (let i = 0; i < acoesInputs.length; i++) {
-                tarefas.push({
-                    acao: acoesInputs[i].value.trim(),
-                    responsavel: respInputs[i].value.trim(),
-                    prazo: prazoInputs[i].value
-                });
+            for (let i = 0; i < acoes.length; i++) {
+                tarefas.push({ acao: acoes[i].value.trim(), responsavel: resps[i].value.trim(), prazo: prazos[i].value });
             }
 
             const novoPlano = {
@@ -139,13 +173,8 @@
                         </div>
                     `;
                     carregarPlanos();
-                } else {
-                    alert('Erro ao salvar plano.');
                 }
-            } catch (err) {
-                console.error(err);
-                alert('Erro de conexão com o servidor.');
-            }
+            } catch (err) { console.error(err); }
         });
 
         async function carregarPlanos() {
@@ -153,10 +182,7 @@
                 const res = await fetch('/api/planos-acao');
                 planosGlobais = await res.json();
                 renderizarPlanos(planosGlobais);
-            } catch (err) {
-                console.error(err);
-                document.getElementById('listaPlanos').innerHTML = '<p>Erro ao carregar Planos de Ação.</p>';
-            }
+            } catch (err) { console.error(err); }
         }
 
         function renderizarPlanos(lista) {
@@ -191,6 +217,7 @@
                                 <option value="Em Andamento" ${plano.status === 'Em Andamento' ? 'selected' : ''}>Em Andamento</option>
                                 <option value="Concluído" ${plano.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
                             </select>
+                            <button onclick="abrirModalEdicao(${plano.id})" style="background-color: #ffc107; color: #212529; padding: 4px 8px; font-size: 12px; margin-left: 5px;">✏️ Editar</button>
                             <button onclick="enviarWhatsApp(${plano.id})" style="background-color: #25d366; padding: 4px 8px; font-size: 12px; margin-left: 5px;" title="Enviar no WhatsApp">💬 WhatsApp</button>
                             <button onclick="deletarPlano(${plano.id})" style="background-color: #dc3545; padding: 4px 8px; font-size: 12px; margin-left: 5px;">Excluir</button>
                         </div>
@@ -207,6 +234,77 @@
                 container.appendChild(box);
             });
         }
+
+        // Funções do Modal de Edição
+        function abrirModalEdicao(id) {
+            const plano = planosGlobais.find(p => p.id === id);
+            if (!plano) return;
+
+            document.getElementById('editPlanoId').value = plano.id;
+            document.getElementById('editTitulo').value = plano.titulo;
+            document.getElementById('editResponsavel').value = plano.responsavel;
+            document.getElementById('editDescricao').value = plano.descricao;
+            document.getElementById('editStatus').value = plano.status;
+
+            const container = document.getElementById('editContainerTarefas');
+            container.innerHTML = '';
+
+            let tarefasArray = [];
+            try {
+                tarefasArray = typeof plano.tarefas === 'string' ? JSON.parse(plano.tarefas) : (plano.tarefas || []);
+            } catch (e) { tarefasArray = []; }
+
+            if (tarefasArray.length === 0) {
+                adicionarLinhaTarefa('editContainerTarefas');
+            } else {
+                tarefasArray.forEach(t => {
+                    adicionarLinhaTarefa('editContainerTarefas', t.acao, t.responsavel, t.prazo);
+                });
+            }
+
+            document.getElementById('modalEdicao').style.display = 'flex';
+        }
+
+        function fecharModal() {
+            document.getElementById('modalEdicao').style.display = 'none';
+        }
+
+        document.getElementById('formEditarPlano').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editPlanoId').value;
+            const acoes = document.querySelectorAll('#editContainerTarefas .tarefa-acao');
+            const resps = document.querySelectorAll('#editContainerTarefas .tarefa-responsavel');
+            const prazos = document.querySelectorAll('#editContainerTarefas .tarefa-prazo');
+
+            let tarefas = [];
+            for (let i = 0; i < acoes.length; i++) {
+                tarefas.push({ acao: acoes[i].value.trim(), responsavel: resps[i].value.trim(), prazo: prazos[i].value });
+            }
+
+            const planoAtualizado = {
+                titulo: document.getElementById('editTitulo').value.trim(),
+                responsavel: document.getElementById('editResponsavel').value.trim(),
+                descricao: document.getElementById('editDescricao').value.trim(),
+                status: document.getElementById('editStatus').value,
+                tarefas: tarefas
+            };
+
+            try {
+                const res = await fetch(`/api/planos-acao/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(planoAtualizado)
+                });
+                const dados = await res.json();
+                if (dados.sucesso) {
+                    alert('Plano atualizado com sucesso!');
+                    fecharModal();
+                    carregarPlanos();
+                } else {
+                    alert('Erro ao atualizar plano.');
+                }
+            } catch (err) { console.error(err); }
+        });
 
         function enviarWhatsApp(id) {
             const plano = planosGlobais.find(p => p.id === id);
