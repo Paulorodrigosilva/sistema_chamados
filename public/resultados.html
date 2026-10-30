@@ -254,13 +254,25 @@
             const tbody = document.getElementById('tabelaResultados');
             tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Carregando dados do histórico...</td></tr>`;
 
-            // Executa todas as buscas em PARALELO usando Promise.all para máxima velocidade
+            const buscarRotaSegura = async (url) => {
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) return await res.json();
+                } catch (e) {}
+                return [];
+            };
+
+            // Busca todas as fontes em paralelo com segurança individual
             try {
-                const [resChamados, resOS, resCK] = await Promise.all([
-                    fetch('/api/chamados').then(r => r.ok ? r.json() : []).catch(() => []),
-                    fetch('/api/ordens-servico').then(r => r.ok ? r.json() : []).catch(() => []),
-                    fetch('/api/checklists').then(r => r.ok ? r.json() : []).catch(() => [])
+                const [resChamados, resOS1, resOS2, resCK] = await Promise.all([
+                    buscarRotaSegura('/api/chamados'),
+                    buscarRotaSegura('/api/ordens-servico'),
+                    buscarRotaSegura('/api/os'),
+                    buscarRotaSegura('/api/checklists')
                 ]);
+
+                // Unifica as Ordens de Serviço de possíveis variações de rota
+                const listaOS = [...(resOS1 || []), ...(resOS2 || [])];
 
                 // 1. Processa Chamados
                 (resChamados || []).forEach(c => {
@@ -279,7 +291,7 @@
                 });
 
                 // 2. Processa Ordens de Serviço
-                (resOS || []).forEach(os => {
+                (listaOS || []).forEach(os => {
                     dadosGlobais.push({
                         tipo: 'Ordem de Serviço',
                         identificacao: `OS #${os.id}`,
