@@ -1,129 +1,1160 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#f6f7f4">
-  <title>CasaForma — planejador de plantas</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f6f7f4" />
+  <title>CasaForma Pro — planejador de plantas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
-    :root{--ink:#17231e;--muted:#75817b;--green:#246b50;--green-dark:#194f3b;--lime:#d8f07b;--line:#e7ebe6;--paper:#fff;--bg:#f5f7f4;--shadow:0 12px 35px #24372b0d}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:'DM Sans',sans-serif;font-size:14px}button{font:inherit;color:inherit;cursor:pointer} .app{min-height:100vh;display:flex;flex-direction:column}
-    .topbar{height:74px;padding:0 30px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px;position:relative;z-index:2}.brand{display:flex;align-items:center;gap:11px;min-width:210px}.brandmark{width:37px;height:37px;border-radius:12px;background:var(--green);display:grid;place-items:center;color:#fff;font-size:19px;box-shadow:0 5px 12px #246b5035}.brand-name{font:800 18px Manrope,sans-serif;letter-spacing:-.7px}.brand-name span{color:var(--green)}.project-info{display:flex;align-items:center;gap:10px;margin-right:auto}.project-name{border:0;background:transparent;font:700 14px Manrope,sans-serif;padding:9px 10px;border-radius:8px}.project-name:hover{background:#f5f7f4}.saved{font-size:11px;color:#85918a;display:flex;align-items:center;gap:6px}.saved:before{content:'';width:6px;height:6px;border-radius:50%;background:#76b98f}.top-actions{display:flex;gap:9px;align-items:center}.btn{border:1px solid var(--line);border-radius:9px;background:#fff;padding:9px 13px;font-weight:600;display:inline-flex;align-items:center;gap:8px;transition:.18s}.btn:hover{border-color:#b9c9bd;background:#f9fbf8}.btn-primary{background:var(--green);border-color:var(--green);color:white}.btn-primary:hover{background:var(--green-dark);color:#fff}.btn-dark{background:#1e2b24;border-color:#1e2b24;color:#fff}.btn-small{padding:7px 10px;font-size:12px}.workspace{display:grid;grid-template-columns:244px minmax(0,1fr) 260px;gap:18px;padding:18px 22px 22px;flex:1;min-height:0}.panel{background:var(--paper);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow)}.sidebar{padding:17px 14px;display:flex;flex-direction:column;min-height:calc(100vh - 110px);overflow:auto}.section-label{font-size:10px;text-transform:uppercase;letter-spacing:1.15px;color:#9aa39d;font-weight:700;margin:3px 8px 11px}.tool-list{display:grid;gap:4px}.tool{border:0;background:transparent;border-radius:8px;padding:10px 11px;display:flex;align-items:center;text-align:left;gap:11px;color:#64716a;font-weight:500;transition:.15s}.tool:hover{background:#f4f7f3;color:var(--ink)}.tool.active{background:#eaf3ec;color:var(--green);font-weight:700}.tool-icon{width:21px;text-align:center;font-size:17px}.tool-hint{margin-left:auto;color:#9ba59e;font-size:10px}.divider{height:1px;background:var(--line);margin:15px 3px}.catalog-head{display:flex;align-items:center;justify-content:space-between;margin:1px 8px 10px}.catalog-head .section-label{margin:0}.count{font-size:10px;color:#88948d;background:#f1f4f1;border-radius:20px;padding:3px 7px}.category-tabs{display:flex;gap:5px;flex-wrap:wrap;margin:0 4px 11px}.cat-tab{border:1px solid transparent;background:transparent;color:#7a867f;padding:5px 8px;border-radius:6px;font-size:10px}.cat-tab.active{background:#eef4ee;color:var(--green);font-weight:700}.catalog-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.catalog-item{min-height:67px;border:1px solid #edf0ec;background:#fff;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:.17s}.catalog-item:hover{border-color:#a9c5b1;transform:translateY(-1px);background:#f8fbf8}.catalog-item .emoji{font-size:23px;line-height:1}.catalog-item span:last-child{font-size:10px;color:#68756d}.catalog-note{color:#9aa39d;font-size:10px;line-height:1.55;margin:11px 5px 0}.sidebar-bottom{margin-top:auto;padding-top:18px}.help-card{background:#f3f6ef;border-radius:10px;padding:12px;color:#637067;font-size:11px;line-height:1.55}.help-card strong{display:block;color:#304439;font-size:12px;margin-bottom:3px}
-    .center{display:flex;flex-direction:column;min-width:0;gap:12px}.canvas-toolbar{height:54px;padding:0 13px;display:flex;align-items:center;justify-content:space-between;gap:10px}.toolgroup{display:flex;align-items:center;gap:5px}.icon-btn{width:34px;height:34px;border:1px solid transparent;background:transparent;border-radius:8px;color:#6c7971;font-size:15px}.icon-btn:hover{background:#f3f6f2;border-color:var(--line)}.icon-btn:disabled{opacity:.35;cursor:not-allowed}.toolbar-sep{width:1px;height:21px;background:var(--line);margin:0 5px}.view-toggle{display:flex;padding:3px;background:#f2f4f1;border-radius:8px}.view-btn{border:0;background:transparent;border-radius:6px;padding:6px 12px;color:#7d8981;font-size:12px;font-weight:600}.view-btn.active{background:white;color:var(--green);box-shadow:0 1px 4px #1b2b2014}.canvas-card{flex:1;min-height:540px;position:relative;overflow:hidden}.canvas-head{position:absolute;top:15px;left:18px;z-index:1;pointer-events:none}.canvas-head strong{font:700 13px Manrope,sans-serif;display:block}.canvas-head span{font-size:10px;color:#929d95}.canvas-wrap{position:absolute;inset:0}.plan-canvas{display:block;width:100%;height:100%;touch-action:none}.canvas-footer{position:absolute;bottom:13px;left:15px;right:15px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}.canvas-footer span{font-size:10px;color:#929d95;background:#ffffffd9;border:1px solid #edf0ec;padding:5px 8px;border-radius:6px}.toast{position:absolute;top:15px;left:50%;transform:translate(-50%,-10px);opacity:0;pointer-events:none;background:#1f3027;color:#fff;padding:9px 14px;border-radius:9px;font-size:12px;box-shadow:var(--shadow);transition:.22s;z-index:5;white-space:nowrap}.toast.show{opacity:1;transform:translate(-50%,0)}
-    .rightbar{padding:17px 16px;display:flex;flex-direction:column;gap:17px;overflow:auto}.right-title{display:flex;justify-content:space-between;align-items:center}.right-title h2{font:700 13px Manrope,sans-serif;margin:0}.project-badge{font-size:9px;color:var(--green);background:#edf5ee;border-radius:20px;padding:5px 8px;font-weight:700}.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat{border:1px solid #edf0ec;border-radius:9px;padding:10px}.stat small{display:block;color:#89958d;font-size:10px;margin-bottom:5px}.stat strong{font:700 17px Manrope,sans-serif}.stat em{font-size:10px;color:#8e9992;font-style:normal;font-weight:500}.selection-box{border-top:1px solid var(--line);padding-top:14px}.selection-heading{font-size:10px;color:#939e97;text-transform:uppercase;letter-spacing:.9px;font-weight:700;margin-bottom:10px}.empty-selection{color:#99a29c;font-size:11px;line-height:1.6;background:#f7f8f6;padding:12px;border-radius:8px}.property{margin-bottom:10px}.property label{display:block;font-size:10px;color:#859189;margin-bottom:5px}.property input,.property select{width:100%;border:1px solid #e8ece8;border-radius:7px;padding:8px;font:12px 'DM Sans';color:#334238;background:#fff}.property-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.full-btn{width:100%;justify-content:center}.layer-list{display:grid;gap:7px}.layer{display:flex;align-items:center;gap:9px;border:1px solid #edf0ec;border-radius:8px;padding:8px 9px;font-size:11px;color:#5e6b63}.layer span:first-child{width:21px;text-align:center}.layer .eye{margin-left:auto;color:#a6afa8}.tip{font-size:10px;line-height:1.55;color:#8b968f;background:#f6f8f5;padding:10px;border-radius:8px}
-    @media(max-width:1120px){.workspace{grid-template-columns:220px minmax(0,1fr)}.rightbar{grid-column:1/-1;min-height:auto;display:grid;grid-template-columns:1fr 1fr 1fr;align-items:start}.rightbar>.right-title{grid-column:1/-1}.sidebar{min-height:calc(100vh - 110px)}}@media(max-width:760px){.topbar{height:auto;min-height:66px;padding:11px 14px;flex-wrap:wrap}.brand{min-width:auto}.project-info{margin:0 auto 0 0}.saved{display:none}.top-actions .btn:not(.btn-primary){display:none}.workspace{display:flex;flex-direction:column;padding:11px;gap:11px}.sidebar{min-height:auto;max-height:330px}.tool-list{grid-template-columns:1fr 1fr}.catalog-grid{grid-template-columns:repeat(4,1fr)}.catalog-item{min-height:60px}.sidebar-bottom{display:none}.center{min-height:520px}.canvas-card{min-height:440px}.rightbar{display:flex;min-height:auto}.stat-grid{grid-template-columns:repeat(4,1fr)}.stat{padding:8px}.stat strong{font-size:15px}.canvas-toolbar{padding:0 8px}.project-name{font-size:12px}.brand-name{font-size:16px}}
+    :root{
+      --bg:#f4f6f1;--paper:#ffffff;--paper-2:#f7faf5;--line:#e6ece5;--green:#1f6b52;--green-deep:#123f30;--green-soft:#ebf5ee;--amber:#d8a65d;--blue:#75b5cc;--slate:#2c3b34;--muted:#76857d;--shadow:0 18px 45px rgba(24,44,36,.09);--danger:#b95a50;
+    }
+    *{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--slate);font-family:'DM Sans',sans-serif}
+    body{overflow:hidden}button,input,select{font:inherit}button{cursor:pointer}input,select{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;color:var(--slate)}
+    .app{display:flex;flex-direction:column;height:100vh}.topbar{display:flex;align-items:center;justify-content:space-between;height:74px;padding:0 24px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.92);backdrop-filter:blur(8px);position:relative;z-index:5}
+    .brand{display:flex;align-items:center;gap:12px}.brandmark{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--green),var(--green-deep));display:grid;place-items:center;color:#fff;font-size:22px;font-weight:800;box-shadow:0 12px 26px rgba(31,107,82,.28)}
+    .brand-name{font-family:'Manrope';font-size:18px;font-weight:800;letter-spacing:-.05em}.brand-name span{color:var(--green)}
+    .project-wrap{display:flex;align-items:center;gap:10px;flex:1;justify-content:flex-start;padding-left:18px}
+    .project-chip{display:inline-flex;align-items:center;gap:8px;background:#f7faf5;border:1px solid var(--line);padding:7px 10px;border-radius:10px;font-weight:700;font-size:12px}
+    .project-chip .dot{width:7px;height:7px;border-radius:50%;background:#8bc8a1;box-shadow:0 0 0 5px rgba(139,200,161,.18)}
+    .project-name{font-family:'Manrope';font-weight:700;border:0;background:transparent;padding:7px 8px;border-radius:8px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .top-actions{display:flex;align-items:center;gap:9px}.btn{padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--slate);font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:.15s}.btn:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(24,44,36,.08)}
+    .btn.primary{background:linear-gradient(135deg,var(--green),var(--green-deep));border-color:transparent;color:#fff}.btn.warning{background:#fff7f3;border-color:#f6d7ce;color:#b9564d}.btn.ghost{background:#f6faf6}
+    .workspace{display:grid;grid-template-columns:260px minmax(0,1fr) 330px;gap:18px;padding:18px;flex:1;min-height:0}
+    .panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+    .sidebar{padding:14px 12px;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+    .section{margin:8px 6px 10px}.section-label{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#93a097;padding:0 6px 5px}
+    .tool-list{display:grid;grid-template-columns:1fr;gap:6px}.tool{padding:10px 11px;background:transparent;border:1px solid transparent;border-radius:10px;display:flex;align-items:center;gap:10px;text-align:left;font-weight:600;color:#5e6d66}.tool:hover{background:#f7faf6;border-color:#edf2ee}.tool.active{background:var(--green-soft);color:var(--green);border-color:#d7eadc}.tool .icon{width:24px;height:24px;border-radius:8px;background:#f2f7f3;display:grid;place-items:center;font-size:16px}.tool.active .icon{background:#dfeee4}
+    .divider{height:1px;background:var(--line);margin:15px 4px}
+    .catalog-header{display:flex;align-items:center;justify-content:space-between;padding:0 6px 8px}.catalog-header .section-label{padding:0}.badge{padding:5px 8px;border-radius:999px;background:#f3f7f4;color:#688079;font-size:10px;font-weight:800}
+    .tab-row{display:flex;flex-wrap:wrap;gap:5px;padding:0 4px 10px}.tab{border:1px solid transparent;background:#f7faf6;padding:6px 9px;border-radius:8px;font-size:10px;font-weight:700;color:#6a7c73}.tab.active{background:#eaf5ee;color:var(--green);border-color:#d1e6d8}
+    .catalog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;overflow:auto;padding:2px 2px 6px}.catalog-item{border:1px solid #edf2ef;background:#fff;padding:10px 8px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;transition:.15s;min-height:78px}.catalog-item:hover{border-color:#cfe3d5;transform:translateY(-1px)}.catalog-item .emoji{font-size:23px}.catalog-item .name{font-size:10px;color:#60746d;font-weight:700;text-align:center}
+    .sidebar-note{margin-top:auto;padding:10px 8px 6px;border-radius:10px;background:linear-gradient(180deg,#f8faf7,#f2f7f2);border:1px solid var(--line);color:#6d7d77;font-size:11px;line-height:1.6}
+    .center{display:flex;flex-direction:column;gap:12px;min-height:0}.canvas-toolbar{height:56px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}.toolgroup{display:flex;align-items:center;gap:6px}.icon-btn{width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:#fff;color:#566760;font-weight:700}.icon-btn:hover{background:#f6faf7}.small-btn{padding:8px 9px;border-radius:9px;border:1px solid var(--line);background:#fff;font-weight:700;font-size:12px}.mini{width:40px}.view-toggle{display:flex;background:#f7faf6;border:1px solid var(--line);padding:3px;border-radius:10px}.view-btn{padding:7px 10px;border-radius:8px;border:0;background:transparent;color:#66796f;font-weight:700}.view-btn.active{background:#fff;color:var(--green);box-shadow:0 2px 8px rgba(18,63,48,.07)}
+    .canvas-shell{position:relative;flex:1;min-height:0;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#fdfefd}
+    .canvas-overlay{position:absolute;top:16px;left:18px;z-index:2;display:flex;flex-direction:column;gap:4px;pointer-events:none}.canvas-overlay strong{font-family:'Manrope';font-size:13px;font-weight:800}.canvas-overlay span{font-size:10px;color:#7b8c84}
+    .canvas-bottom{position:absolute;left:14px;right:14px;bottom:12px;display:flex;justify-content:space-between;align-items:center;z-index:2;pointer-events:none}.canvas-bottom .pill{padding:6px 9px;background:rgba(255,255,255,.8);backdrop-filter:blur(5px);border:1px solid var(--line);border-radius:9px;color:#73827b;font-size:10px;font-weight:700}
+    canvas{display:block;width:100%;height:100%}
+    .toast{position:absolute;left:50%;top:16px;transform:translateX(-50%) translateY(-6px);padding:9px 14px;background:#1a3129;color:#fff;border-radius:10px;font-size:12px;font-weight:700;opacity:0;transition:.2s;pointer-events:none;z-index:20;box-shadow:var(--shadow)}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .rightbar{padding:14px 12px;display:flex;flex-direction:column;gap:14px;overflow:auto}.panel-header{display:flex;justify-content:space-between;align-items:center;padding:2px 4px}.panel-title{font-family:'Manrope';font-size:13px;font-weight:800}.chip{padding:5px 8px;border-radius:999px;background:#ebf5ee;color:var(--green);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat{background:#f8faf7;border:1px solid var(--line);border-radius:12px;padding:10px}.stat small{display:block;color:#8a9691;font-size:10px;margin-bottom:6px}.stat strong{font-family:'Manrope';font-size:16px;letter-spacing:-.04em}.stat em{font-style:normal;color:#7d8a84;font-size:10px}
+    .card{background:#f8faf7;border:1px solid var(--line);border-radius:12px;padding:12px}
+    .card h3{font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 10px;color:#8b9991}.property{margin-bottom:10px}.label{display:block;color:#78887f;font-size:10px;font-weight:700;margin-bottom:6px;letter-spacing:.04em}.field{width:100%}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .project-list{display:grid;gap:7px;max-height:180px;overflow:auto}.project-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid var(--line);background:#fff;border-radius:10px}.project-item.active{border-color:#cedfd4;background:#edf7f0}.project-item .meta{font-weight:700;overflow:hidden}.project-item .meta small{display:block;color:#7d8b84;font-size:10px}.project-item .pick{padding:5px 8px;border-radius:8px;border:none;background:#f4f8f4;color:var(--green);font-size:10px;font-weight:800}
+    .layer-list{display:grid;gap:7px}.layer{display:flex;align-items:center;justify-content:space-between;padding:8px 9px;background:#fff;border:1px solid var(--line);border-radius:10px;font-size:11px;color:#55675f}.layer .left{display:flex;align-items:center;gap:10px}.layer .icon{width:20px;height:20px;border-radius:6px;background:#f2f6f2;display:grid;place-items:center}
+    .tip{padding:10px;border-radius:10px;background:linear-gradient(180deg,#f5faf4,#f0f5ef);border:1px solid var(--line);color:#5f7268;font-size:11px;line-height:1.6}
+    .login-box{display:grid;gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#ffffff}.login-box h3{margin:0;font-family:'Manrope';font-size:13px}.login-box .muted{font-size:11px;color:#7d8c84}.login-box .row{display:grid;gap:8px}.login-box .actions{display:flex;gap:8px}.hidden{display:none!important}
+    @media(max-width:1200px){.workspace{grid-template-columns:220px minmax(0,1fr) 300px}.}
+    @media(max-width:940px){body{overflow:auto}.app{height:auto;min-height:100vh}.workspace{grid-template-columns:1fr;padding:12px}.sidebar,.rightbar{min-height:auto}.canvas-shell{height:420px}.topbar{flex-wrap:wrap;height:auto;padding:12px 14px;gap:10px}.project-wrap{order:3;width:100%;padding-left:0}.top-actions{width:100%;justify-content:flex-end}}
+    @media print{.topbar,.sidebar,.rightbar,.canvas-toolbar{display:none !important}.body,.app,.workspace,.center,.canvas-shell{height:100% !important;display:block !important}.canvas-shell{border:none;box-shadow:none}.workspace{padding:0;margin:0}.}
   </style>
 </head>
 <body>
 <div class="app">
   <header class="topbar">
-    <div class="brand"><div class="brandmark">⌂</div><div class="brand-name">Casa<span>Forma</span></div></div>
-    <div class="project-info"><button class="project-name" id="projectName" title="Clique para renomear">Casa dos sonhos ✎</button><span class="saved" id="saveStatus">Salvo neste dispositivo</span></div>
-    <div class="top-actions"><button class="btn" id="newProject">＋ <span>Novo projeto</span></button><button class="btn" id="exportJson">↧ <span>Exportar</span></button><button class="btn btn-primary" id="saveBtn">✓ <span>Salvar planta</span></button></div>
+    <div class="brand">
+      <div class="brandmark">⌂</div>
+      <div class="brand-name">Casa<span>Forma</span></div>
+    </div>
+    <div class="project-wrap">
+      <div class="project-chip"><span class="dot"></span> Projeto</div>
+      <button class="project-name" id="projectNameBtn" title="Renomear projeto">Casa dos sonhos ✎</button>
+    </div>
+    <div class="top-actions">
+      <button class="btn ghost" id="newProjectBtn">＋ Novo</button>
+      <button class="btn" id="saveProjectBtn">✓ Salvar</button>
+      <button class="btn" id="exportJsonBtn">⇩ JSON</button>
+      <button class="btn primary" id="pdfBtn">⎙ PDF</button>
+    </div>
   </header>
+
   <main class="workspace">
     <aside class="sidebar panel">
-      <div class="section-label">Construir</div>
-      <div class="tool-list" id="tools">
-        <button class="tool active" data-tool="select"><span class="tool-icon">↖</span>Selecionar <span class="tool-hint">V</span></button>
-        <button class="tool" data-tool="room"><span class="tool-icon">▧</span>Criar cômodo <span class="tool-hint">R</span></button>
-        <button class="tool" data-tool="wall"><span class="tool-icon">╱</span>Desenhar muro <span class="tool-hint">M</span></button>
-        <button class="tool" data-tool="door"><span class="tool-icon">🚪</span>Adicionar porta</button>
-        <button class="tool" data-tool="window"><span class="tool-icon">▤</span>Adicionar janela</button>
-        <button class="tool" data-tool="gate"><span class="tool-icon">⛩</span>Portão grande</button>
+      <div class="section">
+        <div class="section-label">Construção</div>
+        <div class="tool-list">
+          <button class="tool active" data-tool="select"><span class="icon">↖</span>Selecionar</button>
+          <button class="tool" data-tool="room"><span class="icon">▧</span>Criar cômodo</button>
+          <button class="tool" data-tool="wall"><span class="icon">╱</span>Desenhar muro</button>
+          <button class="tool" data-tool="door"><span class="icon">🚪</span>Porta</button>
+          <button class="tool" data-tool="window"><span class="icon">▤</span>Janela</button>
+          <button class="tool" data-tool="gate"><span class="icon">⛩</span>Portão</button>
+        </div>
       </div>
+
       <div class="divider"></div>
-      <div class="catalog-head"><div class="section-label">Objetos e móveis</div><span class="count">20 itens</span></div>
-      <div class="category-tabs" id="categories"><button class="cat-tab active" data-category="todos">Todos</button><button class="cat-tab" data-category="cozinha">Cozinha</button><button class="cat-tab" data-category="sala">Sala</button><button class="cat-tab" data-category="banheiro">Banheiro</button><button class="cat-tab" data-category="externo">Externo</button></div>
-      <div class="catalog-grid" id="catalog"></div>
-      <p class="catalog-note">Escolha um item e clique na planta para posicioná-lo. No modo 3D, explore a prévia isométrica.</p>
-      <div class="sidebar-bottom"><div class="help-card"><strong>💡 Dica rápida</strong>Segure <b>Shift</b> e clique em dois cômodos vizinhos para fundi-los e remover a parede compartilhada.</div></div>
+
+      <div class="section">
+        <div class="catalog-header">
+          <div class="section-label">Itens</div>
+          <span class="badge" id="catalogCount">0</span>
+        </div>
+        <div class="tab-row" id="catTabs">
+          <button class="tab active" data-category="todos">Todos</button>
+          <button class="tab" data-category="cozinha">Cozinha</button>
+          <button class="tab" data-category="sala">Sala</button>
+          <button class="tab" data-category="banheiro">Banheiro</button>
+          <button class="tab" data-category="externo">Externo</button>
+        </div>
+        <div class="catalog-grid" id="catalogGrid"></div>
+      </div>
+
+      <div class="sidebar-note">
+        Dica: segure Shift e clique em dois cômodos para fundi-los. Em 3D, você pode alternar o piso e visualizar melhor a planta.
+      </div>
     </aside>
+
     <section class="center">
       <div class="canvas-toolbar panel">
-        <div class="toolgroup"><button class="icon-btn" id="undoBtn" title="Desfazer (Ctrl+Z)" disabled>↶</button><button class="icon-btn" id="redoBtn" title="Refazer (Ctrl+Y)" disabled>↷</button><span class="toolbar-sep"></span><button class="icon-btn" id="zoomOut" title="Diminuir zoom">−</button><button class="icon-btn" id="zoomLabel" title="Zoom atual" style="font-size:11px;width:42px">100%</button><button class="icon-btn" id="zoomIn" title="Aumentar zoom">＋</button><span class="toolbar-sep"></span><button class="icon-btn" id="downloadPng" title="Baixar imagem PNG">▣</button></div>
-        <div class="view-toggle"><button class="view-btn active" data-view="2d">▦ 2D</button><button class="view-btn" data-view="3d">◇ 3D</button></div>
+        <div class="toolgroup">
+          <button class="icon-btn" id="undoBtn" title="Desfazer">↶</button>
+          <button class="icon-btn" id="redoBtn" title="Refazer">↷</button>
+          <button class="small-btn mini" id="zoomOutBtn">−</button>
+          <button class="small-btn mini" id="zoomLabelBtn" title="Resetar zoom">100%</button>
+          <button class="small-btn mini" id="zoomInBtn">＋</button>
+          <button class="small-btn" id="addFloorBtn">＋ Piso</button>
+        </div>
+        <div class="view-toggle">
+          <button class="view-btn active" data-view="2d">2D</button>
+          <button class="view-btn" data-view="3d">3D</button>
+        </div>
       </div>
-      <div class="canvas-card panel"><div class="canvas-head"><strong id="canvasTitle">Planta baixa</strong><span id="canvasSubtitle">Visualização superior · medidas em metros</span></div><div class="canvas-wrap"><canvas class="plan-canvas" id="planCanvas"></canvas></div><div class="toast" id="toast"></div><div class="canvas-footer"><span id="statusHint">Clique e arraste para desenhar um cômodo</span><span>Escala aproximada · 1 quadrado = 1 m</span></div></div>
+
+      <div class="canvas-shell panel">
+        <div class="canvas-overlay">
+          <strong id="canvasTitle">Planta baixa</strong>
+          <span id="canvasSubtitle">Dimensionamento em metros</span>
+        </div>
+        <canvas id="planCanvas"></canvas>
+        <div class="toast" id="toast"></div>
+        <div class="canvas-bottom">
+          <span class="pill" id="statusHint">Selecione uma ferramenta e comece a projetar</span>
+          <span class="pill" id="floorIndicator">Piso 1</span>
+        </div>
+      </div>
     </section>
+
     <aside class="rightbar panel">
-      <div class="right-title"><h2>Resumo do projeto</h2><span class="project-badge">RASCUNHO</span></div>
-      <div class="stat-grid"><div class="stat"><small>Área construída</small><strong id="areaStat">80 <em>m²</em></strong></div><div class="stat"><small>Cômodos</small><strong id="roomStat">4</strong></div><div class="stat"><small>Portas e janelas</small><strong id="openingStat">4</strong></div><div class="stat"><small>Objetos</small><strong id="objectStat">6</strong></div></div>
-      <div class="selection-box"><div class="selection-heading">Propriedades</div><div id="properties"><div class="empty-selection">Selecione um cômodo ou objeto na planta para ver suas propriedades.</div></div></div>
-      <div class="selection-box"><div class="selection-heading">Camadas</div><div class="layer-list"><div class="layer"><span>▧</span> Cômodos e pisos <span class="eye">◉</span></div><div class="layer"><span>╱</span> Paredes e muros <span class="eye">◉</span></div><div class="layer"><span>🚪</span> Portas e janelas <span class="eye">◉</span></div><div class="layer"><span>🛋️</span> Móveis e objetos <span class="eye">◉</span></div></div></div>
-      <div class="tip">Seu projeto é salvo automaticamente no navegador deste dispositivo. Use <b>Exportar</b> para guardar uma cópia em arquivo.</div>
+      <div class="panel-header">
+        <div class="panel-title">Projeto</div>
+        <span class="chip">Ativo</span>
+      </div>
+
+      <div class="login-box" id="loginBox">
+        <h3>Login do projeto</h3>
+        <div class="muted">Entre com usuário e senha para salvar no servidor. Sem login, o projeto fica salvo localmente.</div>
+        <div class="row">
+          <input id="loginUser" placeholder="Usuário" />
+          <input id="loginPass" type="password" placeholder="Senha" />
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="loginBtn">Entrar</button>
+          <button class="btn" id="demoLoginBtn">Demo</button>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><small>Área</small><strong id="areaStat">0 <em>m²</em></strong></div>
+        <div class="stat"><small>Cômodos</small><strong id="roomStat">0</strong></div>
+        <div class="stat"><small>Janelas/Portas</small><strong id="openingsStat">0</strong></div>
+        <div class="stat"><small>Objetos</small><strong id="objectsStat">0</strong></div>
+      </div>
+
+      <div class="card">
+        <h3>Propriedades</h3>
+        <div id="propertiesPanel">
+          <div class="tip">Selecione um cômodo, porta, janela ou objeto para ajustar detalhes.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Andares</h3>
+        <div class="project-list" id="floorList"></div>
+      </div>
+
+      <div class="card">
+        <h3>Projetos salvos</h3>
+        <div class="project-list" id="savedProjectsList"></div>
+      </div>
+
+      <div class="card">
+        <h3>Camadas</h3>
+        <div class="layer-list">
+          <div class="layer"><div class="left"><span class="icon">▧</span> Cômodos</div><span>On</span></div>
+          <div class="layer"><div class="left"><span class="icon">╱</span> Muros</div><span>On</span></div>
+          <div class="layer"><div class="left"><span class="icon">🚪</span> Portas</div><span>On</span></div>
+          <div class="layer"><div class="left"><span class="icon">🛋️</span> Móveis</div><span>On</span></div>
+        </div>
+      </div>
     </aside>
   </main>
 </div>
+
 <script>
 (() => {
   const catalogItems = [
-    {id:'fridge',name:'Geladeira',emoji:'🧊',category:'cozinha',color:'#9db6b2',w:1.1,h:.8},{id:'stove',name:'Fogão',emoji:'♨️',category:'cozinha',color:'#59636a',w:.9,h:.8},{id:'sink',name:'Pia',emoji:'🚰',category:'cozinha',color:'#c6d6d3',w:1.2,h:.7},{id:'table',name:'Mesa',emoji:'🍽️',category:'cozinha',color:'#bd9165',w:1.5,h:1.1},
-    {id:'sofa',name:'Sofá',emoji:'🛋️',category:'sala',color:'#7a9a82',w:2,h:.9},{id:'tv',name:'TV',emoji:'📺',category:'sala',color:'#59656a',w:1.3,h:.35},{id:'armchair',name:'Poltrona',emoji:'💺',category:'sala',color:'#c58b68',w:.9,h:.9},{id:'bed',name:'Cama',emoji:'🛏️',category:'sala',color:'#d6c6a9',w:2,h:1.5},
-    {id:'toilet',name:'Vaso sanitário',emoji:'🚽',category:'banheiro',color:'#e4e9e5',w:.7,h:.7},{id:'shower',name:'Chuveiro',emoji:'🚿',category:'banheiro',color:'#b8d5d9',w:.9,h:.9},{id:'bath',name:'Banheira',emoji:'🛁',category:'banheiro',color:'#c7dce0',w:1.7,h:.8},{id:'vanity',name:'Gabinete',emoji:'🪞',category:'banheiro',color:'#b79475',w:1,h:.5},
-    {id:'car',name:'Carro',emoji:'🚗',category:'externo',color:'#7496a7',w:4.2,h:2.1},{id:'grill',name:'Churrasqueira',emoji:'🍖',category:'externo',color:'#5c6260',w:1.2,h:.8},{id:'tree',name:'Árvore',emoji:'🌳',category:'externo',color:'#6b9b66',w:1.5,h:1.5},{id:'plant',name:'Jardim',emoji:'🪴',category:'externo',color:'#78a96c',w:.8,h:.8},
-    {id:'gate-small',name:'Portão social',emoji:'🚪',category:'externo',color:'#7b8b80',w:1,h:.18},{id:'gate-large',name:'Portão garagem',emoji:'⛩',category:'externo',color:'#8c9990',w:3,h:.2},{id:'desk',name:'Escrivaninha',emoji:'🪑',category:'sala',color:'#ad8964',w:1.3,h:.7},{id:'plant2',name:'Vaso decorativo',emoji:'🌿',category:'sala',color:'#71916c',w:.6,h:.6}
+    {id:'fridge',name:'Geladeira',emoji:'🧊',category:'cozinha',color:'#a7bcb5',w:1.2,h:.8},
+    {id:'stove',name:'Fogão',emoji:'♨️',category:'cozinha',color:'#6f777d',w:.9,h:.8},
+    {id:'sink',name:'Pia',emoji:'🚰',category:'cozinha',color:'#bdd7d9',w:1.3,h:.7},
+    {id:'table',name:'Mesa',emoji:'🍽️',category:'cozinha',color:'#d8a66b',w:1.7,h:1.1},
+    {id:'sofa',name:'Sofá',emoji:'🛋️',category:'sala',color:'#7ea287',w:2.2,h:1},
+    {id:'tv',name:'TV',emoji:'📺',category:'sala',color:'#69737a',w:1.3,h:.4},
+    {id:'armchair',name:'Poltrona',emoji:'💺',category:'sala',color:'#d69f72',w:1,h:1},
+    {id:'bed',name:'Cama',emoji:'🛏️',category:'sala',color:'#d9d0bc',w:2,h:1.6},
+    {id:'desk',name:'Escrivaninha',emoji:'🪑',category:'sala',color:'#b68b63',w:1.3,h:.7},
+    {id:'toilet',name:'Vaso sanitário',emoji:'🚽',category:'banheiro',color:'#dfe4df',w:.7,h:.7},
+    {id:'shower',name:'Chuveiro',emoji:'🚿',category:'banheiro',color:'#b8d9de',w:1,h:1},
+    {id:'bath',name:'Banheira',emoji:'🛁',category:'banheiro',color:'#cfe9f1',w:1.8,h:.8},
+    {id:'vanity',name:'Gabinete',emoji:'🪞',category:'banheiro',color:'#bf9c7b',w:1.1,h:.6},
+    {id:'car',name:'Carro',emoji:'🚗',category:'externo',color:'#799db1',w:4,h:1.9},
+    {id:'grill',name:'Churrasqueira',emoji:'🍖',category:'externo',color:'#5e6665',w:1.4,h:1},
+    {id:'tree',name:'Árvore',emoji:'🌳',category:'externo',color:'#7fa66e',w:1.5,h:1.5},
+    {id:'plant',name:'Vaso',emoji:'🪴',category:'externo',color:'#7ea770',w:.7,h:.7},
+    {id:'gateSmall',name:'Portão pequeno',emoji:'🚪',category:'externo',color:'#7f8e84',w:1.1,h:.15},
+    {id:'gateLarge',name:'Portão grande',emoji:'⛩',category:'externo',color:'#9ba79f',w:2.8,h:.18}
   ];
-  const defaultState = () => ({name:'Casa dos sonhos',rooms:[{id:'r1',name:'Sala de estar',x:2,y:2,w:6,h:4.5,color:'#e6efe4'},{id:'r2',name:'Cozinha',x:8,y:2,w:4,h:4.5,color:'#f2eadc'},{id:'r3',name:'Quarto',x:2,y:6.5,w:4.5,h:4,color:'#e7eaf3'},{id:'r4',name:'Banheiro',x:6.5,y:6.5,w:3,h:3,color:'#e0eff0'}],walls:[{id:'w1',x1:1,y1:1,x2:13,y2:1},{id:'w2',x1:13,y1:1,x2:13,y2:11},{id:'w3',x1:13,y1:11,x2:1,y2:11},{id:'w4',x1:1,y1:11,x2:1,y2:1}],openings:[{id:'o1',type:'door',x:8,y:6.5,label:'Porta de abrir'},{id:'o2',type:'door-slide',x:6.5,y:6.5,label:'Porta de correr'},{id:'o3',type:'window',x:4,y:2,label:'Janela'},{id:'o4',type:'gate',x:7,y:11,label:'Portão garagem'}],objects:[{id:'i1',type:'sofa',x:4.8,y:4.4,rotation:0},{id:'i2',type:'table',x:9.8,y:4.3,rotation:0},{id:'i3',type:'fridge',x:10.8,y:2.8,rotation:0},{id:'i4',type:'bed',x:4,y:8.5,rotation:0},{id:'i5',type:'toilet',x:8,y:7.6,rotation:0},{id:'i6',type:'car',x:10.8,y:9.4,rotation:0}),selected:[],zoom:1});
-  let state;try{state=JSON.parse(localStorage.getItem('casaforma-project'))||defaultState()}catch{state=defaultState()}
-  let tool='select',view='2d',category='todos',placing=null,drag=null,history=[],future=[],zoom=state.zoom||1,canvas,ctx,dpr=1,W=0,H=0,scale=1,ox=0,oy=0,toastTimer;
-  const $=s=>document.querySelector(s), canvasEl=$('#planCanvas');
-  const save=()=>{state.zoom=zoom;localStorage.setItem('casaforma-project',JSON.stringify(state));$('#saveStatus').textContent='Salvo neste dispositivo';updateStats();};
-  const snapshot=()=>{history.push(JSON.stringify({rooms:state.rooms,walls:state.walls,openings:state.openings,objects:state.objects}));if(history.length>40)history.shift();future=[];buttonsHistory()};
-  const buttonsHistory=()=>{$('#undoBtn').disabled=!history.length;$('#redoBtn').disabled=!future.length};
-  function restore(s){const x=JSON.parse(s);Object.assign(state,x);state.selected=[];render();save()}
-  function undo(){if(!history.length)return;future.push(JSON.stringify({rooms:state.rooms,walls:state.walls,openings:state.openings,objects:state.objects}));restore(history.pop());buttonsHistory()}
-  function redo(){if(!future.length)return;history.push(JSON.stringify({rooms:state.rooms,walls:state.walls,openings:state.openings,objects:state.objects}));restore(future.pop());buttonsHistory()}
-  function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2100)}
-  function setTool(t){tool=t;placing=null;document.querySelectorAll('.tool').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));canvasEl.style.cursor=t==='select'?'default':'crosshair';const hints={select:'Clique para selecionar · Shift + clique em dois cômodos para fundir',room:'Clique e arraste para desenhar um cômodo',wall:'Clique e arraste para desenhar um muro',door:'Clique em uma parede para colocar uma porta de abrir',window:'Clique em uma parede para colocar uma janela',gate:'Clique em uma parede para colocar um portão'};$('#statusHint').textContent=hints[t]||'Clique na planta para posicionar';}
-  function renderCatalog(){const el=$('#catalog');el.innerHTML='';catalogItems.filter(i=>category==='todos'||i.category===category).forEach(item=>{const b=document.createElement('button');b.className='catalog-item';b.innerHTML=`<span class="emoji">${item.emoji}</span><span>${item.name}</span>`;b.title='Clique para selecionar e posicionar';b.onclick=()=>{placing=item.id;setTool('object');$('#statusHint').textContent=`Clique na planta para posicionar: ${item.name}`;document.querySelectorAll('.tool').forEach(x=>x.classList.remove('active'));toast(`${item.name} selecionado — clique na planta`)};el.appendChild(b)})}
-  document.querySelectorAll('.cat-tab').forEach(b=>b.onclick=()=>{category=b.dataset.category;document.querySelectorAll('.cat-tab').forEach(x=>x.classList.toggle('active',x===b));renderCatalog()});renderCatalog();
-  document.querySelectorAll('.tool').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
-  function resize(){const r=canvasEl.getBoundingClientRect();dpr=Math.max(1,window.devicePixelRatio||1);W=r.width;H=r.height;canvasEl.width=Math.round(W*dpr);canvasEl.height=Math.round(H*dpr);ctx=canvasEl.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);draw()}
-  function coords(){if(view==='2d'){scale=Math.min((W-80)/18,(H-90)/12)*zoom;ox=(W-18*scale)/2;oy=(H-12*scale)/2+5}else{scale=Math.min((W-90)/(30*.72),(H-120)/(30*.36+12))*zoom;ox=W/2;oy=Math.max(80,(H-30*.36*scale)/2+10)}}
-  function p2(x,y){return [ox+x*scale,oy+y*scale]}
-  function iso(x,y,z=0){return [ox+(x-y)*scale*.72,oy+(x+y)*scale*.36-z*scale*.75]}
-  function roundRect(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
-  function drawGrid(){ctx.fillStyle='#fbfcfa';ctx.fillRect(0,0,W,H);const step=scale;for(let x=ox%step;x<W;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.strokeStyle='#eef1ed';ctx.lineWidth=1;ctx.stroke()}for(let y=oy%step;y<H;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.strokeStyle='#eef1ed';ctx.lineWidth=1;ctx.stroke()}}
-  function draw2d(){drawGrid();ctx.save();ctx.shadowColor='#18291d12';ctx.shadowBlur=15;ctx.shadowOffsetY=5;state.rooms.forEach(r=>{const [x,y]=p2(r.x,r.y);ctx.fillStyle=r.color||'#e8eee7';ctx.fillRect(x,y,r.w*scale,r.h*scale)});ctx.restore();
-    state.rooms.forEach(r=>{const [x,y]=p2(r.x,r.y),w=r.w*scale,h=r.h*scale,sel=state.selected.includes(r.id);ctx.strokeStyle=sel?'#277451':'#52665a';ctx.lineWidth=sel?3:2.2;ctx.strokeRect(x,y,w,h);ctx.fillStyle='#405249';ctx.textAlign='center';ctx.font=`600 ${Math.max(10,Math.min(13,scale*.24))}px 'DM Sans'`;ctx.fillText(r.name,(x+w/2),y+h/2-2);ctx.font=`${Math.max(9,scale*.19)}px 'DM Sans'`;ctx.fillStyle='#829087';ctx.fillText(`${r.w.toFixed(1)} × ${r.h.toFixed(1)} m`,x+w/2,y+h/2+14);if(sel){ctx.strokeStyle='#98c8a9';ctx.setLineDash([5,4]);ctx.lineWidth=1;ctx.strokeRect(x-4,y-4,w+8,h+8);ctx.setLineDash([])}});
-    ctx.lineCap='square';state.walls.forEach(w=>{const a=p2(w.x1,w.y1),b=p2(w.x2,w.y2);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.strokeStyle='#4b5c51';ctx.lineWidth=6;ctx.stroke();ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.strokeStyle='#758479';ctx.lineWidth=1;ctx.stroke()});
-    state.openings.forEach(o=>{const [x,y]=p2(o.x,o.y);ctx.save();ctx.translate(x,y);if(o.type==='window'){ctx.fillStyle='#88bec3';ctx.fillRect(-scale*.42,-4,scale*.84,8);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-4);ctx.lineTo(0,4);ctx.stroke()}else if(o.type==='gate'){ctx.fillStyle='#b68759';ctx.fillRect(-scale*.65,-5,scale*1.3,10);ctx.strokeStyle='#f8eee3';ctx.lineWidth=1.3;for(let i=-.5;i<=.5;i+=.2){ctx.beginPath();ctx.moveTo(i*scale,-4);ctx.lineTo(i*scale,4);ctx.stroke()}}else{ctx.fillStyle='#fff';ctx.fillRect(-scale*.34,-5,scale*.68,10);ctx.strokeStyle='#a5764e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-scale*.34,0);ctx.lineTo(-scale*.34,scale*.63);ctx.stroke();ctx.beginPath();ctx.arc(-scale*.34,0,scale*.63,0,Math.PI/2);ctx.stroke();if(o.type==='door-slide'){ctx.strokeStyle='#428e9a';ctx.beginPath();ctx.moveTo(-scale*.28,-2);ctx.lineTo(scale*.28,-2);ctx.stroke()}}ctx.restore()});
-    state.objects.forEach(o=>{const item=catalogItems.find(i=>i.id===o.type);if(!item)return;const [x,y]=p2(o.x,o.y),w=Math.max(24,item.w*scale*.8),h=Math.max(20,item.h*scale*.8),sel=state.selected.includes(o.id);ctx.save();ctx.translate(x,y);ctx.rotate((o.rotation||0)*Math.PI/180);roundRect(-w/2,-h/2,w,h,Math.min(8,w/4),item.color,sel?'#277451':'#ffffff');ctx.strokeStyle=sel?'#277451':'#ffffff';ctx.lineWidth=sel?2:1.5;ctx.strokeRect(-w/2,-h/2,w,h);ctx.font=`${Math.min(25,Math.max(15,Math.min(w,h)*.62))}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(item.emoji,0,0);ctx.restore()});
-    drawScale();}
-  function drawScale(){ctx.fillStyle='#87938b';ctx.font='10px "DM Sans"';ctx.textAlign='left';for(let i=0;i<=18;i+=2){const [x,y]=p2(i,0);ctx.fillText(`${i}m`,x,y-9)} }
-  function poly(points,fill,stroke,width=1){ctx.beginPath();points.forEach((p,i)=>{const [x,y]=p;if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.stroke()}}
-  function drawBox(x,y,w,h,z,color){const a=iso(x-w/2,y-h/2,0),b=iso(x+w/2,y-h/2,0),c=iso(x+w/2,y+h/2,0),d=iso(x-w/2,y+h/2,0),A=iso(x-w/2,y-h/2,z),B=iso(x+w/2,y-h/2,z),C=iso(x+w/2,y+h/2,z),D=iso(x-w/2,y+h/2,z);poly([a,b,B,A],shade(color,-15),'#ffffff85');poly([b,c,C,B],shade(color,-28),'#ffffff85');poly([A,B,C,D],color,'#ffffffaa');return [a,b,c,d]}
-  function shade(hex,amount){const n=parseInt(hex.slice(1),16),r=Math.max(0,Math.min(255,(n>>16)+amount)),g=Math.max(0,Math.min(255,((n>>8)&255)+amount)),b=Math.max(0,Math.min(255,(n&255)+amount));return `rgb(${r},${g},${b})`}
-  function draw3d(){ctx.fillStyle='#f7f9f6';ctx.fillRect(0,0,W,H);const corners=[[1,1],[13,1],[13,11],[1,11]].map(([x,y])=>iso(x,y));poly(corners,'#eff2ee','#cbd4cc',1.5);
-    state.rooms.forEach(r=>{const pts=[[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]].map(([x,y])=>iso(x,y));poly(pts,r.color||'#e8eee7','#ffffff',2);const mid=iso(r.x+r.w/2,r.y+r.h/2,.03);ctx.fillStyle='#46574c';ctx.textAlign='center';ctx.font='600 12px "DM Sans"';ctx.fillText(r.name,mid[0],mid[1])});
-    const walls=[];state.walls.forEach(w=>walls.push([w.x1,w.y1,w.x2,w.y2]));state.rooms.forEach(r=>walls.push([r.x,r.y,r.x+r.w,r.y],[r.x+r.w,r.y,r.x+r.w,r.y+r.h],[r.x+r.w,r.y+r.h,r.x,r.y+r.h],[r.x,r.y+r.h,r.x,r.y]));walls.forEach(([x1,y1,x2,y2])=>{const a=iso(x1,y1),b=iso(x2,y2),A=iso(x1,y1,.55),B=iso(x2,y2,.55);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.lineTo(...B);ctx.lineTo(...A);ctx.closePath();ctx.fillStyle='#d5ddd5';ctx.fill();ctx.strokeStyle='#a8b4aa';ctx.lineWidth=1;ctx.stroke();ctx.beginPath();ctx.moveTo(...A);ctx.lineTo(...B);ctx.strokeStyle='#738176';ctx.lineWidth=3;ctx.stroke()});
-    state.objects.forEach(o=>{const item=catalogItems.find(i=>i.id===o.type);if(!item)return;let col=item.color;let height=['tree','plant','plant2'].includes(o.type)?1.8:['sofa','bed','car'].includes(o.type)?.55:.7;const pts=drawBox(o.x,o.y,Math.max(.45,item.w*.65),Math.max(.4,item.h*.65),height,col);const [x,y]=iso(o.x,o.y,height+.15);ctx.font=`${Math.min(24,Math.max(14,scale*.42))}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(item.emoji,x,y)});
-    state.openings.forEach(o=>{const [x,y]=iso(o.x,o.y,.08);ctx.fillStyle=o.type==='window'?'#65aeb8':'#a47b52';ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill()});ctx.fillStyle='#728078';ctx.font='11px "DM Sans"';ctx.textAlign='center';ctx.fillText('Prévia isométrica · móveis representados em volume',W/2,H-25)}
-  function render(){if(!ctx)return;coords();if(view==='2d')draw2d();else draw3d();updateStats();updateProperties();$('#zoomLabel').textContent=`${Math.round(zoom*100)}%`}
-  function updateStats(){const area=state.rooms.reduce((s,r)=>s+r.w*r.h,0);$('#areaStat').innerHTML=`${area.toFixed(0)} <em>m²</em>`;$('#roomStat').textContent=state.rooms.length;$('#openingStat').textContent=state.openings.length;$('#objectStat').textContent=state.objects.length}
-  function updateProperties(){const box=$('#properties'),id=state.selected[0];if(!id){box.innerHTML='<div class="empty-selection">Selecione um cômodo ou objeto na planta para ver suas propriedades.</div>';return}const r=state.rooms.find(x=>x.id===id);if(r){box.innerHTML=`<div class="property"><label>Nome do cômodo</label><input id="propName" value="${r.name}" maxlength="28"></div><div class="property-row"><div class="property"><label>Largura (m)</label><input type="number" id="propW" min="1" max="18" step="0.5" value="${r.w}"></div><div class="property"><label>Comprimento (m)</label><input type="number" id="propH" min="1" max="12" step="0.5" value="${r.h}"></div></div><div class="property"><label>Área do cômodo</label><input disabled value="${(r.w*r.h).toFixed(1)} m²"></div><button class="btn btn-small full-btn" id="mergeBtn">＋ Fundir cômodos selecionados</button><button class="btn btn-small full-btn" id="deleteSelected" style="margin-top:7px;color:#a34f48">Remover cômodo</button>`;$('#propName').onchange=e=>{r.name=e.target.value||'Cômodo';save();render()};$('#propW').onchange=e=>{r.w=Math.max(1,Math.min(18,Number(e.target.value)||1));save();render()};$('#propH').onchange=e=>{r.h=Math.max(1,Math.min(12,Number(e.target.value)||1));save();render()};$('#mergeBtn').onclick=mergeSelected;$('#deleteSelected').onclick=deleteSelected;return}const o=state.objects.find(x=>x.id===id);if(o){const item=catalogItems.find(x=>x.id===o.type);box.innerHTML=`<div class="property"><label>Objeto</label><input disabled value="${item?.name||o.type}"></div><div class="property-row"><div class="property"><label>Posição X (m)</label><input type="number" id="propX" step="0.5" value="${o.x.toFixed(1)}"></div><div class="property"><label>Posição Y (m)</label><input type="number" id="propY" step="0.5" value="${o.y.toFixed(1)}"></div></div><div class="property"><label>Rotação</label><select id="propRot"><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></div><button class="btn btn-small full-btn" id="deleteSelected" style="color:#a34f48">Remover objeto</button>`;$('#propRot').value=o.rotation||0;['propX','propY'].forEach(k=>$('#'+k).onchange=e=>{o[k==='propX'?'x':'y']=Number(e.target.value)||0;save();render()});$('#propRot').onchange=e=>{o.rotation=Number(e.target.value);save();render()};$('#deleteSelected').onclick=deleteSelected;return}box.innerHTML='<div class="empty-selection">Item selecionado.</div>'}
-  function pointer(e){const r=canvasEl.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-  function world(p){return{x:(p.x-ox)/scale,y:(p.y-oy)/scale}}
-  function snap(n){return Math.round(n*2)/2}
-  function hit(p){const q=world(p);for(let i=state.objects.length-1;i>=0;i--){const o=state.objects[i],it=catalogItems.find(x=>x.id===o.type);if(Math.abs(q.x-o.x)<Math.max(.4,(it?.w||1)/2)&&Math.abs(q.y-o.y)<Math.max(.4,(it?.h||1)/2))return o.id}for(let i=state.rooms.length-1;i>=0;i--){const r=state.rooms[i];if(q.x>=r.x&&q.x<=r.x+r.w&&q.y>=r.y&&q.y<=r.y+r.h)return r.id}return null}
-  canvasEl.addEventListener('pointerdown',e=>{if(view!=='2d')return;canvasEl.setPointerCapture(e.pointerId);const p=pointer(e),q=world(p);if(tool==='select'){const id=hit(p);if(e.shiftKey&&id&&state.rooms.some(r=>r.id===id)){state.selected=state.selected.includes(id)?state.selected.filter(x=>x!==id):[...state.selected,id]}else state.selected=id?[id]:[];if(id&&state.objects.some(o=>o.id===id)){snapshot();drag={kind:'move-object',id,start:q,orig:{...state.objects.find(o=>o.id===id)}}}else if(id&&state.rooms.some(r=>r.id===id)&&!e.shiftKey){const r=state.rooms.find(x=>x.id===id);snapshot();drag={kind:'move-room',id,start:q,orig:{x:r.x,y:r.y}}}render();return}if(tool==='room'||tool==='wall'){drag={kind:tool,start:{x:snap(q.x),y:snap(q.y)},current:{x:snap(q.x),y:snap(q.y)}};render();return}if(tool==='object'&&placing){snapshot();state.objects.push({id:'i'+Date.now(),type:placing,x:snap(q.x),y:snap(q.y),rotation:0});state.selected=[state.objects.at(-1).id];placing=null;setTool('select');save();render();return}if(['door','window','gate'].includes(tool)){snapshot();let type=tool==='door'?(e.altKey?'door-slide':'door'):tool;state.openings.push({id:'o'+Date.now(),type,x:snap(q.x),y:snap(q.y),label:type});state.selected=[state.openings.at(-1).id];save();render();toast(type==='door'?'Porta adicionada (Alt para porta de correr)':'Item adicionado');return}});
-  canvasEl.addEventListener('pointermove',e=>{if(!drag)return;const q=world(pointer(e));if(drag.kind==='room'||drag.kind==='wall'){drag.current={x:snap(q.x),y:snap(q.y)};render();const a=p2(drag.start.x,drag.start.y),b=p2(drag.current.x,drag.current.y);ctx.save();ctx.strokeStyle=drag.kind==='room'?'#277451':'#52665a';ctx.lineWidth=drag.kind==='room'?2:5;ctx.setLineDash(drag.kind==='room'?[5,4]:[]);if(drag.kind==='room')ctx.strokeRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);else{ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke()}ctx.restore()}else if(drag.kind==='move-object'){const o=state.objects.find(x=>x.id===drag.id);o.x=snap(drag.orig.x+q.x-drag.start.x);o.y=snap(drag.orig.y+q.y-drag.start.y);render()}else if(drag.kind==='move-room'){const r=state.rooms.find(x=>x.id===drag.id);r.x=snap(drag.orig.x+q.x-drag.start.x);r.y=snap(drag.orig.y+q.y-drag.start.y);render()}});
-  canvasEl.addEventListener('pointerup',()=>{if(!drag)return;if(drag.kind==='room'){const x=Math.min(drag.start.x,drag.current.x),y=Math.min(drag.start.y,drag.current.y),w=Math.abs(drag.current.x-drag.start.x),h=Math.abs(drag.current.y-drag.start.y);if(w>=1&&h>=1){snapshot();const id='r'+Date.now();state.rooms.push({id,name:'Novo cômodo',x,y,w,h,color:['#e6efe4','#f2eadc','#e7eaf3','#e0eff0','#f2e7e8'][state.rooms.length%5]});state.selected=[id];save()}else toast('O cômodo precisa ter pelo menos 1 × 1 m')}else if(drag.kind==='wall'){if(Math.hypot(drag.current.x-drag.start.x,drag.current.y-drag.start.y)>=.5){snapshot();state.walls.push({id:'w'+Date.now(),x1:drag.start.x,y1:drag.start.y,x2:drag.current.x,y2:drag.current.y});save()}}else if(drag.kind==='move-object'||drag.kind==='move-room')save();drag=null;render()});
-  function mergeSelected(){const rs=state.rooms.filter(r=>state.selected.includes(r.id));if(rs.length!==2){toast('Selecione dois cômodos com Shift + clique');return}const[a,b]=rs,eps=.01;let merged=null;if(Math.abs(a.y-b.y)<eps&&Math.abs(a.h-b.h)<eps&&(Math.abs(a.x+a.w-b.x)<eps||Math.abs(b.x+b.w-a.x)<eps))merged={x:Math.min(a.x,b.x),y:a.y,w:a.w+b.w,h:a.h};else if(Math.abs(a.x-b.x)<eps&&Math.abs(a.w-b.w)<eps&&(Math.abs(a.y+a.h-b.y)<eps||Math.abs(b.y+b.h-a.y)<eps))merged={x:a.x,y:Math.min(a.y,b.y),w:a.w,h:a.h+b.h};if(!merged){toast('Para fundir, os cômodos precisam ser vizinhos e ter lados alinhados');return}snapshot();state.rooms=state.rooms.filter(r=>r.id!==a.id&&r.id!==b.id);const id='r'+Date.now();state.rooms.push({id,name:a.name+' + '+b.name,...merged,color:a.color});state.selected=[id];save();render();toast('Cômodos fundidos — parede compartilhada removida')}
-  function deleteSelected(){if(!state.selected.length)return;snapshot();const ids=state.selected;state.rooms=state.rooms.filter(x=>!ids.includes(x.id));state.objects=state.objects.filter(x=>!ids.includes(x.id));state.openings=state.openings.filter(x=>!ids.includes(x.id));state.walls=state.walls.filter(x=>!ids.includes(x.id));state.selected=[];save();render()}
-  $('#undoBtn').onclick=undo;$('#redoBtn').onclick=redo;$('#zoomIn').onclick=()=>{zoom=Math.min(1.7,zoom+.1);render();save()};$('#zoomOut').onclick=()=>{zoom=Math.max(.65,zoom-.1);render();save()};$('#zoomLabel').onclick=()=>{zoom=1;render();save()};
-  document.querySelectorAll('.view-btn').forEach(b=>b.onclick=()=>{view=b.dataset.view;document.querySelectorAll('.view-btn').forEach(x=>x.classList.toggle('active',x===b));$('#canvasTitle').textContent=view==='2d'?'Planta baixa':'Visão 3D';$('#canvasSubtitle').textContent=view==='2d'?'Visualização superior · medidas em metros':'Visualização isométrica · volumes e mobiliário';canvasEl.style.cursor=view==='2d'?'default':'grab';render()});
-  $('#projectName').onclick=()=>{const v=prompt('Nome do projeto:',state.name);if(v?.trim()){state.name=v.trim();$('#projectName').textContent=state.name+' ✎';save()}};
-  $('#saveBtn').onclick=()=>{save();toast('Projeto salvo neste dispositivo')};
-  $('#newProject').onclick=()=>{if(confirm('Criar uma planta nova? O projeto atual ficará salvo neste dispositivo.')){snapshot();const old=state.name;state=defaultState();state.name='Novo projeto';state.rooms=[];state.walls=[];state.openings=[];state.objects=[];state.selected=[];$('#projectName').textContent=state.name+' ✎';save();render();toast('Projeto novo criado')}};
-  $('#exportJson').onclick=()=>{const blob=new Blob([JSON.stringify({app:'CasaForma',version:1,exportadoEm:new Date().toISOString(),...state},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(state.name||'planta').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.json';a.click();URL.revokeObjectURL(a.href);toast('Arquivo do projeto exportado')};
-  $('#downloadPng').onclick=()=>{const a=document.createElement('a');a.download='planta-casaforma.png';a.href=canvasEl.toDataURL('image/png');a.click()};
-  window.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo();return}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return}if(e.key==='Escape'){setTool('select');state.selected=[];render()}if(e.key==='Delete'||e.key==='Backspace')deleteSelected();if(!e.ctrlKey&&!e.metaKey){const k=e.key.toLowerCase();if(k==='v')setTool('select');if(k==='r')setTool('room');if(k==='m')setTool('wall')}});
-  const observer=new ResizeObserver(resize);observer.observe(canvasEl);if(!state.name)state.name='Casa dos sonhos';$('#projectName').textContent=state.name+' ✎';setTool('select');resize();render();
+
+  const makeDefaultProject = () => ({
+    id: 'project-local',
+    name: 'Casa dos sonhos',
+    floors: [
+      {
+        id: 'floor-1',
+        name: 'Piso 1',
+        rooms: [
+          {id:'r1',name:'Sala',x:2,y:2,w:6,h:4.6,color:'#e9f0e5'},
+          {id:'r2',name:'Cozinha',x:8.2,y:2,w:4.5,h:4.6,color:'#f1ead8'},
+          {id:'r3',name:'Quarto',x:2,y:6.7,w:4.8,h:4,color:'#e8edf7'},
+          {id:'r4',name:'Banheiro',x:6.9,y:6.9,w:3.3,h:3.4,color:'#e0eef0'}
+        ],
+        walls: [
+          {id:'w1',x1:1,y1:1,x2:13.5,y2:1},{id:'w2',x1:13.5,y1:1,x2:13.5,y2:11},{id:'w3',x1:13.5,y1:11,x2:1,y2:11},{id:'w4',x1:1,y1:11,x2:1,y2:1}
+        ],
+        openings:[
+          {id:'o1',type:'door',x:7.8,y:6.8,label:'Porta de abrir'},
+          {id:'o2',type:'door-slide',x:6.9,y:6.8,label:'Porta de correr'},
+          {id:'o3',type:'window',x:4.1,y:2,label:'Janela'}
+        ],
+        objects:[
+          {id:'obj1',type:'sofa',x:4.8,y:4.2,rotation:0},
+          {id:'obj2',type:'table',x:9.5,y:4.2,rotation:0},
+          {id:'obj3',type:'fridge',x:11.3,y:2.8,rotation:0},
+          {id:'obj4',type:'bed',x:3.9,y:8.6,rotation:0},
+          {id:'obj5',type:'toilet',x:8.3,y:8.1,rotation:0},
+          {id:'obj6',type:'car',x:10.8,y:9.1,rotation:0}
+        ]
+      }
+    ],
+    selected: [],
+    currentFloor: 0,
+    zoom: 1,
+    login: null
+  });
+
+  let state = restoreFromStorageOrDefault();
+  let tool='select', view='2d', activeCategory='todos', placingItem=null, drag=null, history=[], future=[], zoom=state.zoom||1;
+  let canvas, ctx, W=0, H=0, scale=1, ox=0, oy=0, dpr=1, toastTimer=null;
+
+  const $ = (sel) => document.querySelector(sel);
+  const canvasEl = $('#planCanvas');
+
+  const currentFloor = () => state.floors[state.currentFloor] || state.floors[0];
+  const saveState = (silent = false) => {
+    state.zoom = zoom;
+    localStorage.setItem('casaforma-pro-project', JSON.stringify(state));
+    if (!silent) {
+      $('#toast').textContent = 'Projeto salvo';
+      $('#toast').classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 1600);
+    }
+  };
+
+  function restoreFromStorageOrDefault(){
+    try {
+      const raw = localStorage.getItem('casaforma-pro-project');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.floors && parsed.floors.length) return parsed;
+      }
+    } catch (e) {}
+    return makeDefaultProject();
+  }
+
+  function snapshot(){
+    history.push(JSON.stringify({
+      floors: JSON.parse(JSON.stringify(state.floors)),
+      currentFloor: state.currentFloor,
+      selected: state.selected
+    }));
+    if (history.length > 35) history.shift();
+    future = [];
+    updateHistoryButtons();
+  }
+
+  function undo(){
+    if (!history.length) return;
+    future.push(JSON.stringify({
+      floors: JSON.parse(JSON.stringify(state.floors)),
+      currentFloor: state.currentFloor,
+      selected: state.selected
+    }));
+    const prev = JSON.parse(history.pop());
+    state.floors = prev.floors;
+    state.currentFloor = prev.currentFloor;
+    state.selected = prev.selected || [];
+    render();
+    saveState(true);
+    updateHistoryButtons();
+  }
+
+  function redo(){
+    if (!future.length) return;
+    history.push(JSON.stringify({
+      floors: JSON.parse(JSON.stringify(state.floors)),
+      currentFloor: state.currentFloor,
+      selected: state.selected
+    }));
+    const nxt = JSON.parse(future.pop());
+    state.floors = nxt.floors;
+    state.currentFloor = nxt.currentFloor;
+    state.selected = nxt.selected || [];
+    render();
+    saveState(true);
+    updateHistoryButtons();
+  }
+
+  function updateHistoryButtons(){
+    $('#undoBtn').disabled = history.length === 0;
+    $('#redoBtn').disabled = future.length === 0;
+  }
+
+  function updateProjectNameButton(){
+    $('#projectNameBtn').textContent = `${state.name || 'Casa dos sonhos'} ✎`;
+  }
+
+  function setTool(t){
+    tool = t;
+    placingItem = null;
+    document.querySelectorAll('.tool').forEach((btn) => btn.classList.toggle('active', btn.dataset.tool === t));
+    const descriptions = {
+      select:'Selecione, arraste e ajuste o projeto.',
+      room:'Clique e arraste para criar um cômodo.',
+      wall:'Clique e arraste para desenhar muros.',
+      door:'Clique na planta para adicionar porta.',
+      window:'Clique na planta para adicionar janela.',
+      gate:'Clique na planta para adicionar portão.'
+    };
+    $('#statusHint').textContent = descriptions[t] || 'Selecione uma ferramenta';
+  }
+
+  function renderCatalog(){
+    const grid = $('#catalogGrid');
+    const filtered = catalogItems.filter((item) => activeCategory === 'todos' || item.category === activeCategory);
+    $('#catalogCount').textContent = String(filtered.length);
+    grid.innerHTML = filtered.map((item) => `
+      <button class="catalog-item" data-item="${item.id}" title="${item.name}">
+        <span class="emoji">${item.emoji}</span>
+        <span class="name">${item.name}</span>
+      </button>
+    `).join('');
+    grid.querySelectorAll('.catalog-item').forEach((el) => {
+      el.addEventListener('click', () => {
+        placingItem = el.dataset.item;
+        setTool('select');
+        $('#statusHint').textContent = `Item selecionado: ${catalogItems.find(x => x.id === placingItem)?.name}. Clique na planta para posicionar.`;
+        $('#toast').textContent = `${catalogItems.find(x => x.id === placingItem)?.name} pronto para posicionar`;
+        $('#toast').classList.add('show');
+        setTimeout(() => $('#toast').classList.remove('show'), 1800);
+      });
+    });
+  }
+
+  function resizeCanvas(){
+    const rect = canvasEl.getBoundingClientRect();
+    dpr = Math.max(1, window.devicePixelRatio || 1);
+    W = rect.width;
+    H = rect.height;
+    canvasEl.width = Math.round(W * dpr);
+    canvasEl.height = Math.round(H * dpr);
+    ctx = canvasEl.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    render();
+  }
+
+  function coordsForView(){
+    if (view === '2d') {
+      scale = Math.min((W - 80) / 18, (H - 90) / 12) * zoom;
+      ox = (W - 18 * scale) / 2;
+      oy = (H - 12 * scale) / 2 + 8;
+    } else {
+      scale = Math.min((W - 80) / 24, (H - 80) / 16) * zoom;
+      ox = W * 0.5;
+      oy = H * 0.6;
+    }
+  }
+
+  function worldFromPointer(x, y){
+    return { x: (x - ox) / scale, y: (y - oy) / scale };
+  }
+
+  function to2dScreen(x, y){
+    return [ox + x * scale, oy + y * scale];
+  }
+
+  function iso(x, y, z = 0){
+    return [ox + (x - y) * scale * 0.72, oy + (x + y) * scale * 0.36 - z * scale * 0.8];
+  }
+
+  function snap(v){ return Math.round(v * 2) / 2; }
+
+  function drawGrid(){
+    ctx.fillStyle = '#fbfdfb';
+    ctx.fillRect(0, 0, W, H);
+    const step = scale;
+    ctx.strokeStyle = '#edf2ee';
+    ctx.lineWidth = 1;
+    for (let x = ox % step; x < W; x += step) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let y = oy % step; y < H; y += step) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+  }
+
+  function draw2D(){
+    drawGrid();
+
+    const floor = currentFloor();
+    floor.rooms.forEach((room) => {
+      const [x, y] = to2dScreen(room.x, room.y);
+      const w = room.w * scale;
+      const h = room.h * scale;
+      const selected = state.selected.includes(room.id);
+      ctx.fillStyle = room.color || '#e5eee5';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = selected ? '#2a825d' : '#4a5d53';
+      ctx.lineWidth = selected ? 3 : 2;
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = '#32453d';
+      ctx.font = `600 ${Math.max(11, Math.min(16, 12 + scale * 0.3))}px 'DM Sans'`;
+      ctx.textAlign = 'center';
+      ctx.fillText(room.name, x + w / 2, y + h / 2 + 4);
+      ctx.font = `${Math.max(9, Math.min(13, 10 + scale * 0.2))}px 'DM Sans'`;
+      ctx.fillStyle = '#7c8a82';
+      ctx.fillText(`${room.w.toFixed(1)} × ${room.h.toFixed(1)}m`, x + w / 2, y + h / 2 + 18);
+      if (selected) {
+        ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = '#93d0a6';
+        ctx.strokeRect(x - 6, y - 6, w + 12, h + 12);
+        ctx.setLineDash([]);
+      }
+    });
+
+    floor.walls.forEach((wall) => {
+      const a = to2dScreen(wall.x1, wall.y1);
+      const b = to2dScreen(wall.x2, wall.y2);
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(b[0], b[1]);
+      ctx.strokeStyle = '#4c5d54';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(b[0], b[1]);
+      ctx.strokeStyle = '#7e8f87';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    floor.openings.forEach((op) => {
+      const [x, y] = to2dScreen(op.x, op.y);
+      ctx.save();
+      ctx.translate(x, y);
+      if (op.type === 'window') {
+        ctx.fillStyle = '#7ec7d0';
+        ctx.fillRect(-scale * 0.36, -4, scale * 0.72, 8);
+        ctx.strokeStyle = '#5aa0a9';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -4); ctx.lineTo(0, 4); ctx.stroke();
+      } else if (op.type === 'door' || op.type === 'door-slide') {
+        ctx.strokeStyle = '#9a6649';
+        ctx.lineWidth = 2;
+        ctx.fillStyle = '#f1f1ee';
+        ctx.fillRect(-scale * 0.22, -4, scale * 0.44, 8);
+        ctx.beginPath();
+        ctx.moveTo(-scale * 0.2, 0); ctx.lineTo(-scale * 0.2, scale * 0.4); ctx.stroke();
+      } else if (op.type === 'gate') {
+        ctx.fillStyle = '#bb9b65';
+        ctx.fillRect(-scale * 0.55, -5, scale * 1.1, 10);
+        ctx.strokeStyle = '#8e7249';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-scale * 0.55, -5, scale * 1.1, 10);
+      }
+      ctx.restore();
+    });
+
+    floor.objects.forEach((obj) => {
+      const item = catalogItems.find(x => x.id === obj.type);
+      if (!item) return;
+      const [x, y] = to2dScreen(obj.x, obj.y);
+      const w = Math.max(16, item.w * scale * 0.85);
+      const h = Math.max(16, item.h * scale * 0.85);
+      const selected = state.selected.includes(obj.id);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((obj.rotation || 0) * Math.PI / 180);
+      ctx.fillStyle = item.color;
+      ctx.strokeStyle = selected ? '#2a825d' : '#fff';
+      ctx.lineWidth = selected ? 2 : 1;
+      ctx.beginPath();
+      ctx.roundRect(-w / 2, -h / 2, w, h, 10);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#2f423f';
+      ctx.font = `${Math.min(20, Math.max(12, w * 0.45))}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(item.emoji, 0, 0);
+      ctx.restore();
+    });
+
+    ctx.fillStyle = '#7e8d87';
+    ctx.font = '11px "DM Sans"';
+    ctx.textAlign = 'left';
+    for (let i = 0; i <= 16; i += 2) {
+      const [x, y] = to2dScreen(i, 0);
+      ctx.fillText(`${i}m`, x, y - 10);
+    }
+  }
+
+  function shade(hex, amt){
+    const num = parseInt(hex.slice(1), 16);
+    const r = Math.max(0, Math.min(255, (num >> 16) + amt));
+    const g = Math.max(0, Math.min(255, ((num >> 8) & 255) + amt));
+    const b = Math.max(0, Math.min(255, (num & 255) + amt));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function drawIsoBox(cx, cy, w, h, z, color){
+    const p0=iso(cx - w/2, cy - h/2, 0), p1=iso(cx + w/2, cy - h/2, 0), p2=iso(cx + w/2, cy + h/2, 0), p3=iso(cx - w/2, cy + h/2, 0);
+    const q0=iso(cx - w/2, cy - h/2, z), q1=iso(cx + w/2, cy - h/2, z), q2=iso(cx + w/2, cy + h/2, z), q3=iso(cx - w/2, cy + h/2, z);
+    ctx.beginPath(); ctx.moveTo(...p0); ctx.lineTo(...p1); ctx.lineTo(...q1); ctx.lineTo(...q0); ctx.closePath(); ctx.fillStyle=shade(color,-15); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(...p1); ctx.lineTo(...p2); ctx.lineTo(...q2); ctx.lineTo(...q1); ctx.closePath(); ctx.fillStyle=shade(color,-26); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(...q0); ctx.lineTo(...q1); ctx.lineTo(...q2); ctx.lineTo(...q3); ctx.closePath(); ctx.fillStyle=color; ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.stroke();
+  }
+
+  function draw3D(){
+    ctx.fillStyle = '#f6f8f5';
+    ctx.fillRect(0, 0, W, H);
+
+    const floor = currentFloor();
+    const ground = [[1,1],[14,1],[14,11],[1,11]].map(([x,y]) => iso(x,y,0));
+    ctx.beginPath();
+    ground.forEach(([x,y], idx) => idx===0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y));
+    ctx.closePath();
+    ctx.fillStyle = '#edf2ee';
+    ctx.fill();
+    ctx.strokeStyle = '#d1d9d3';
+    ctx.stroke();
+
+    floor.rooms.forEach((room) => {
+      const pts = [[room.x, room.y],[room.x + room.w, room.y],[room.x + room.w, room.y + room.h],[room.x, room.y + room.h]].map(([x,y]) => iso(x,y,0.04));
+      ctx.beginPath();
+      pts.forEach(([x,y], idx) => idx === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y));
+      ctx.closePath();
+      ctx.fillStyle = room.color || '#ebf0e8';
+      ctx.fill();
+      ctx.strokeStyle = '#d0d7d1';
+      ctx.stroke();
+    });
+
+    floor.objects.forEach((obj) => {
+      const item = catalogItems.find(x => x.id === obj.type);
+      if (!item) return;
+      drawIsoBox(obj.x, obj.y, Math.max(.5, item.w * 0.75), Math.max(.45, item.h * 0.75), ['tree','plant'].includes(obj.type) ? 1.8 : 0.7, item.color);
+    });
+
+    floor.openings.forEach((op) => {
+      const [x, y] = iso(op.x, op.y, 0.1);
+      ctx.fillStyle = op.type === 'window' ? '#7ec7d0' : '#b98f69';
+      ctx.beginPath(); ctx.arc(x, y, 6, 0, 2 * Math.PI); ctx.fill();
+    });
+
+    ctx.fillStyle = '#697c71';
+    ctx.font = '11px "DM Sans"';
+    ctx.textAlign = 'center';
+    ctx.fillText('Vista isométrica · 3D', W / 2, H - 16);
+  }
+
+  function render(){
+    if (!ctx) return;
+    coordsForView();
+    if (view === '2d') draw2D(); else draw3D();
+    updateStats();
+    updatePropertiesPanel();
+    updateFloorTabs();
+    $('#floorIndicator').textContent = `Piso ${state.currentFloor + 1}`;
+    $('#zoomLabelBtn').textContent = `${Math.round(zoom * 100)}%`;
+    $('#canvasTitle').textContent = view === '2d' ? 'Planta baixa' : 'Visualização 3D';
+    $('#canvasSubtitle').textContent = view === '2d' ? 'Dimensionamento em metros' : 'Vista isométrica do projeto';
+  }
+
+  function hitObjectAtPointer(px, py){
+    const q = worldFromPointer(px, py);
+    const floor = currentFloor();
+    for (let i = floor.objects.length - 1; i >= 0; i--) {
+      const obj = floor.objects[i];
+      const item = catalogItems.find(x => x.id === obj.type);
+      if (!item) continue;
+      if (Math.abs(q.x - obj.x) < Math.max(0.5, item.w / 2) && Math.abs(q.y - obj.y) < Math.max(0.5, item.h / 2)) return obj.id;
+    }
+    for (let i = floor.rooms.length - 1; i >= 0; i--) {
+      const room = floor.rooms[i];
+      if (q.x >= room.x && q.x <= room.x + room.w && q.y >= room.y && q.y <= room.y + room.h) return room.id;
+    }
+    return null;
+  }
+
+  function pointerFromEvent(e){
+    const rect = canvasEl.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function updateStats(){
+    const floor = currentFloor();
+    const area = floor.rooms.reduce((sum, room) => sum + room.w * room.h, 0);
+    $('#areaStat').innerHTML = `${Math.round(area)} <em>m²</em>`;
+    $('#roomStat').textContent = String(floor.rooms.length);
+    $('#openingsStat').textContent = String(floor.openings.length);
+    $('#objectsStat').textContent = String(floor.objects.length);
+  }
+
+  function updatePropertiesPanel(){
+    const floor = currentFloor();
+    const id = state.selected[0];
+    const box = $('#propertiesPanel');
+    if (!id) {
+      box.innerHTML = '<div class="tip">Selecione um cômodo, porta, janela ou objeto para ajustar detalhes.</div>';
+      return;
+    }
+
+    const room = floor.rooms.find(x => x.id === id);
+    if (room) {
+      box.innerHTML = `
+        <div class="property">
+          <label class="label">Nome do cômodo</label>
+          <input class="field" id="roomNameInput" value="${room.name}" maxlength="28" />
+        </div>
+        <div class="field-row">
+          <div class="property">
+            <label class="label">Largura</label>
+            <input class="field" id="roomWInput" type="number" step="0.5" min="1" max="18" value="${room.w}" />
+          </div>
+          <div class="property">
+            <label class="label">Altura</label>
+            <input class="field" id="roomHInput" type="number" step="0.5" min="1" max="18" value="${room.h}" />
+          </div>
+        </div>
+        <button class="btn primary" id="mergeRoomsBtn" style="width:100%;justify-content:center;">Fundir com outro cômodo</button>
+        <button class="btn warning" id="deleteSelectionBtn" style="margin-top:8px;width:100%;justify-content:center;">Remover</button>
+      `;
+      $('#roomNameInput').addEventListener('input', (e) => { room.name = e.target.value || 'Cômodo'; saveState(true); render(); });
+      $('#roomWInput').addEventListener('input', (e) => { room.w = Math.max(1, Number(e.target.value) || 1); saveState(true); render(); });
+      $('#roomHInput').addEventListener('input', (e) => { room.h = Math.max(1, Number(e.target.value) || 1); saveState(true); render(); });
+      $('#mergeRoomsBtn').addEventListener('click', mergeSelectedRooms);
+      $('#deleteSelectionBtn').addEventListener('click', deleteSelection);
+      return;
+    }
+
+    const opening = floor.openings.find(x => x.id === id);
+    if (opening) {
+      box.innerHTML = `
+        <div class="property">
+          <label class="label">Tipo</label>
+          <select class="field" id="openingTypeSelect">
+            <option value="door" ${opening.type === 'door' ? 'selected' : ''}>Porta simples</option>
+            <option value="door-slide" ${opening.type === 'door-slide' ? 'selected' : ''}>Porta de correr</option>
+            <option value="window" ${opening.type === 'window' ? 'selected' : ''}>Janela</option>
+            <option value="gate" ${opening.type === 'gate' ? 'selected' : ''}>Portão</option>
+          </select>
+        </div>
+        <div class="property">
+          <label class="label">Rótulo</label>
+          <input class="field" id="openingLabelInput" value="${opening.label || ''}" maxlength="28" />
+        </div>
+        <button class="btn warning" id="deleteSelectionBtn" style="width:100%;justify-content:center;">Remover</button>
+      `;
+      $('#openingTypeSelect').addEventListener('change', (e) => { opening.type = e.target.value; saveState(true); render(); });
+      $('#openingLabelInput').addEventListener('input', (e) => { opening.label = e.target.value; saveState(true); render(); });
+      $('#deleteSelectionBtn').addEventListener('click', deleteSelection);
+      return;
+    }
+
+    const obj = floor.objects.find(x => x.id === id);
+    if (obj) {
+      const item = catalogItems.find(x => x.id === obj.type);
+      box.innerHTML = `
+        <div class="property">
+          <label class="label">Objeto</label>
+          <input class="field" value="${item ? item.name : obj.type}" readonly />
+        </div>
+        <div class="field-row">
+          <div class="property">
+            <label class="label">X</label>
+            <input class="field" id="objXInput" type="number" step="0.5" value="${obj.x}" />
+          </div>
+          <div class="property">
+            <label class="label">Y</label>
+            <input class="field" id="objYInput" type="number" step="0.5" value="${obj.y}" />
+          </div>
+        </div>
+        <div class="property">
+          <label class="label">Rotação</label>
+          <select class="field" id="objRotSelect">
+            <option value="0" ${obj.rotation === 0 ? 'selected' : ''}>0°</option>
+            <option value="90" ${obj.rotation === 90 ? 'selected' : ''}>90°</option>
+            <option value="180" ${obj.rotation === 180 ? 'selected' : ''}>180°</option>
+            <option value="270" ${obj.rotation === 270 ? 'selected' : ''}>270°</option>
+          </select>
+        </div>
+        <button class="btn warning" id="deleteSelectionBtn" style="width:100%;justify-content:center;">Remover</button>
+      `;
+      $('#objXInput').addEventListener('input', (e) => { obj.x = Number(e.target.value) || 0; saveState(true); render(); });
+      $('#objYInput').addEventListener('input', (e) => { obj.y = Number(e.target.value) || 0; saveState(true); render(); });
+      $('#objRotSelect').addEventListener('change', (e) => { obj.rotation = Number(e.target.value) || 0; saveState(true); render(); });
+      $('#deleteSelectionBtn').addEventListener('click', deleteSelection);
+      return;
+    }
+
+    box.innerHTML = '<div class="tip">Seleção válida, porém sem propriedades editoriais específicas.</div>';
+  }
+
+  function deleteSelection(){
+    const floor = currentFloor();
+    const ids = new Set(state.selected);
+    floor.rooms = floor.rooms.filter(r => !ids.has(r.id));
+    floor.objects = floor.objects.filter(o => !ids.has(o.id));
+    floor.openings = floor.openings.filter(o => !ids.has(o.id));
+    state.selected = [];
+    render();
+    saveState(true);
+  }
+
+  function mergeSelectedRooms(){
+    const floor = currentFloor();
+    const selected = floor.rooms.filter(r => state.selected.includes(r.id));
+    if (selected.length !== 2) {
+      $('#toast').textContent = 'Selecione exatamente dois cômodos';
+      $('#toast').classList.add('show');
+      setTimeout(() => $('#toast').classList.remove('show'), 1600);
+      return;
+    }
+    const [a, b] = selected;
+    const sameY = Math.abs(a.y - b.y) < 0.05 && Math.abs(a.h - b.h) < 0.05;
+    const sameX = Math.abs(a.x - b.x) < 0.05 && Math.abs(a.w - b.w) < 0.05;
+    let merged = null;
+    if (sameY && Math.abs(a.x + a.w - b.x) < 0.1) {
+      merged = { x: Math.min(a.x, b.x), y: a.y, w: a.w + b.w, h: a.h, color: a.color };
+    } else if (sameY && Math.abs(b.x + b.w - a.x) < 0.1) {
+      merged = { x: Math.min(a.x, b.x), y: a.y, w: a.w + b.w, h: a.h, color: a.color };
+    } else if (sameX && Math.abs(a.y + a.h - b.y) < 0.1) {
+      merged = { x: a.x, y: Math.min(a.y, b.y), w: a.w, h: a.h + b.h, color: a.color };
+    } else if (sameX && Math.abs(b.y + b.h - a.y) < 0.1) {
+      merged = { x: a.x, y: Math.min(a.y, b.y), w: a.w, h: a.h + b.h, color: a.color };
+    }
+    if (!merged) {
+      $('#toast').textContent = 'Esses cômodos precisam ser contíguos e alinhados';
+      $('#toast').classList.add('show');
+      setTimeout(() => $('#toast').classList.remove('show'), 1600);
+      return;
+    }
+    floor.rooms = floor.rooms.filter(r => !state.selected.includes(r.id));
+    const newRoom = { id: 'r' + Date.now(), name: `${a.name} + ${b.name}`, ...merged };
+    floor.rooms.push(newRoom);
+    state.selected = [newRoom.id];
+    render();
+    saveState(true);
+  }
+
+  function addNewFloor(){
+    const idx = state.floors.length + 1;
+    const template = {
+      id: `floor-${idx}`,
+      name: `Piso ${idx}`,
+      rooms: [{ id: 'f' + Date.now(), name: 'Novo cômodo', x: 2, y: 2, w: 5, h: 4, color: '#ebf1e5' }],
+      walls: [],
+      openings: [],
+      objects: []
+    };
+    state.floors.push(template);
+    state.currentFloor = state.floors.length - 1;
+    render();
+    saveState(true);
+  }
+
+  function updateFloorTabs(){
+    const list = $('#floorList');
+    list.innerHTML = state.floors.map((floor, idx) => `
+      <button class="project-item ${idx === state.currentFloor ? 'active' : ''}" data-floor-index="${idx}">
+        <div class="meta">${floor.name}<small>${floor.rooms.length} cômodos</small></div>
+        <span class="pick">Abrir</span>
+      </button>
+    `).join('');
+    list.querySelectorAll('.project-item').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.currentFloor = Number(btn.dataset.floorIndex);
+        state.selected = [];
+        render();
+        saveState(true);
+      });
+    });
+  }
+
+  function renderSavedProjects(){
+    const list = $('#savedProjectsList');
+    const projects = JSON.parse(localStorage.getItem('casaforma-pro-projects') || '[]');
+    if (!projects.length) {
+      list.innerHTML = '<div class="tip">Nenhum projeto salvo ainda. Salve este projeto para manter backup.</div>';
+      return;
+    }
+    list.innerHTML = projects.map((p, idx) => `
+      <div class="project-item ${p.id === state.id ? 'active' : ''}">
+        <div class="meta">${p.name}<small>${new Date(p.updatedAt || Date.now()).toLocaleDateString('pt-BR')}</small></div>
+        <button class="pick" data-load-id="${p.id}">Carregar</button>
+      </div>
+    `).join('');
+    list.querySelectorAll('[data-load-id]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const found = projects.find(p => p.id === btn.dataset.loadId);
+        if (found) {
+          state = { ...found, currentFloor: 0, selected: [] };
+          localStorage.setItem('casaforma-pro-project', JSON.stringify(state));
+          render();
+          saveState(true);
+        }
+      });
+    });
+  }
+
+  function persistToProjectArchive(){
+    const arr = JSON.parse(localStorage.getItem('casaforma-pro-projects') || '[]');
+    const payload = { ...state, id: state.id || `project-${Date.now()}`, updatedAt: new Date().toISOString() };
+    const idx = arr.findIndex(p => p.id === payload.id);
+    if (idx >= 0) arr[idx] = payload; else arr.unshift(payload);
+    localStorage.setItem('casaforma-pro-projects', JSON.stringify(arr.slice(0, 8)));
+    state.id = payload.id;
+    renderSavedProjects();
+  }
+
+  function saveProjectToServer(){
+    const user = state.login || localStorage.getItem('casaforma-user');
+    if (!user) {
+      saveState(true);
+      persistToProjectArchive();
+      renderSavedProjects();
+      $('#toast').textContent = 'Salvo localmente';
+      $('#toast').classList.add('show');
+      setTimeout(() => $('#toast').classList.remove('show'), 1800);
+      return;
+    }
+    fetch('/api/plantas', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ name: state.name, data: state, owner: user })
+    }).then(r => r.ok ? r.json() : Promise.reject()).then(() => {
+      $('#toast').textContent = 'Projeto salvo no servidor';
+      $('#toast').classList.add('show');
+      setTimeout(() => $('#toast').classList.remove('show'), 1800);
+    }).catch(() => {
+      saveState(true);
+      persistToProjectArchive();
+      $('#toast').textContent = 'Servidor indisponível — salvo localmente';
+      $('#toast').classList.add('show');
+      setTimeout(() => $('#toast').classList.remove('show'), 1800);
+    });
+  }
+
+  function loginDemo() {
+    state.login = 'demo';
+    localStorage.setItem('casaforma-user', 'demo');
+    $('#loginBox').classList.add('hidden');
+    render();
+    $('#toast').textContent = 'Modo demo ativado';
+    $('#toast').classList.add('show');
+    setTimeout(() => $('#toast').classList.remove('show'), 1700);
+  }
+
+  function handleLogin(){
+    const user = $('#loginUser').value.trim();
+    const pass = $('#loginPass').value.trim();
+    if (!user || !pass) {
+      $('#toast').textContent = 'Informe usuário e senha';
+      $('#toast').classList.add('show');
+      setTimeout(() => $('#toast').classList.remove('show'), 1700);
+      return;
+    }
+    fetch('/api/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ usuario: user, senha: pass })
+    }).then(res => res.json()).then((res) => {
+      if (res.sucesso) {
+        state.login = user;
+        localStorage.setItem('casaforma-user', user);
+        $('#loginBox').classList.add('hidden');
+        $('#toast').textContent = 'Login realizado';
+        $('#toast').classList.add('show');
+        setTimeout(() => $('#toast').classList.remove('show'), 1700);
+      } else {
+        $('#toast').textContent = res.mensagem || 'Falha no login';
+        $('#toast').classList.add('show');
+        setTimeout(() => $('#toast').classList.remove('show'), 1700);
+      }
+    }).catch(() => {
+      state.login = user;
+      localStorage.setItem('casaforma-user', user);
+      $('#loginBox').classList.add('hidden');
+      $('#toast').textContent = 'Modo local ativado';
+      $('#toast').classList.add('show');
+      setTimeout(() => $('#toast').classList.remove('show'), 1700);
+    });
+  }
+
+  function exportJson(){
+    const blob = new Blob([JSON.stringify({ app: 'CasaForma Pro', exportedAt: new Date().toISOString(), project: state }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(state.name || 'projeto-casa').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    $('#toast').textContent = 'Arquivo JSON exportado';
+    $('#toast').classList.add('show');
+    setTimeout(() => $('#toast').classList.remove('show'), 1700);
+  }
+
+  function printPdf(){
+    window.print();
+  }
+
+  function addProjectItemOnCanvas(q){
+    if (!placingItem) return;
+    const floor = currentFloor();
+    floor.objects.push({
+      id: 'obj-' + Date.now(),
+      type: placingItem,
+      x: snap(q.x),
+      y: snap(q.y),
+      rotation: 0
+    });
+    state.selected = [floor.objects[floor.objects.length - 1].id];
+    placingItem = null;
+    render();
+    saveState(true);
+  }
+
+  function addOpeningAtPointer(q, type){
+    const floor = currentFloor();
+    const item = { id: 'op-' + Date.now(), type, x: snap(q.x), y: snap(q.y), label: type === 'door' ? 'Porta de abrir' : type === 'door-slide' ? 'Porta de correr' : type === 'window' ? 'Janela' : 'Portão' };
+    floor.openings.push(item);
+    state.selected = [item.id];
+    render();
+    saveState(true);
+  }
+
+  function startDragOnCanvas(e){
+    const pos = pointerFromEvent(e);
+    const q = worldFromPointer(pos.x, pos.y);
+    const floor = currentFloor();
+    if (tool === 'select') {
+      const id = hitObjectAtPointer(pos.x, pos.y);
+      if (id) {
+        state.selected = [id];
+        const room = floor.rooms.find(r => r.id === id);
+        const obj = floor.objects.find(o => o.id === id);
+        const opening = floor.openings.find(o => o.id === id);
+        if (room) drag = { kind: 'move-room', id, startX: q.x, startY: q.y, originalX: room.x, originalY: room.y };
+        else if (obj) drag = { kind: 'move-object', id, startX: q.x, startY: q.y, originalX: obj.x, originalY: obj.y };
+        else if (opening) drag = { kind: 'move-opening', id, startX: q.x, startY: q.y, originalX: opening.x, originalY: opening.y };
+      } else {
+        state.selected = [];
+      }
+      render();
+      return;
+    }
+
+    if (tool === 'room') {
+      drag = { kind: 'draw-room', start: { x: snap(q.x), y: snap(q.y) }, current: { x: snap(q.x), y: snap(q.y) } };
+      render();
+      return;
+    }
+
+    if (tool === 'wall') {
+      drag = { kind: 'draw-wall', start: { x: snap(q.x), y: snap(q.y) }, current: { x: snap(q.x), y: snap(q.y) } };
+      render();
+      return;
+    }
+
+    if (tool === 'door' || tool === 'window' || tool === 'gate') {
+      addOpeningAtPointer(q, tool === 'door' ? 'door' : tool);
+      render();
+    }
+
+    if (placingItem) {
+      addProjectItemOnCanvas(q);
+    }
+  }
+
+  function moveDrag(e){
+    if (!drag) return;
+    const pos = pointerFromEvent(e);
+    const q = worldFromPointer(pos.x, pos.y);
+    const floor = currentFloor();
+
+    if (drag.kind === 'draw-room' || drag.kind === 'draw-wall') {
+      drag.current = { x: snap(q.x), y: snap(q.y) };
+      render();
+      return;
+    }
+
+    if (drag.kind === 'move-room') {
+      const room = floor.rooms.find(r => r.id === drag.id);
+      if (!room) return;
+      room.x = snap(drag.originalX + (q.x - drag.startX));
+      room.y = snap(drag.originalY + (q.y - drag.startY));
+      render();
+      return;
+    }
+
+    if (drag.kind === 'move-object') {
+      const obj = floor.objects.find(o => o.id === drag.id);
+      if (!obj) return;
+      obj.x = snap(drag.originalX + (q.x - drag.startX));
+      obj.y = snap(drag.originalY + (q.y - drag.startY));
+      render();
+      return;
+    }
+
+    if (drag.kind === 'move-opening') {
+      const op = floor.openings.find(o => o.id === drag.id);
+      if (!op) return;
+      op.x = snap(drag.originalX + (q.x - drag.startX));
+      op.y = snap(drag.originalY + (q.y - drag.startY));
+      render();
+    }
+  }
+
+  function endDrag(){
+    if (!drag) return;
+    const floor = currentFloor();
+    if (drag.kind === 'draw-room') {
+      const x1 = Math.min(drag.start.x, drag.current.x),
+            x2 = Math.max(drag.start.x, drag.current.x),
+            y1 = Math.min(drag.start.y, drag.current.y),
+            y2 = Math.max(drag.start.y, drag.current.y),
+            w = x2 - x1, h = y2 - y1;
+      if (w >= 1 && h >= 1) {
+        snapshot();
+        floor.rooms.push({ id: 'r' + Date.now(), name: 'Novo cômodo', x: x1, y: y1, w, h, color: ['#e7efe6','#f4ebdb','#eaf0f7','#e3eef1'][floor.rooms.length % 4] });
+        state.selected = [floor.rooms[floor.rooms.length - 1].id];
+      }
+    }
+
+    if (drag.kind === 'draw-wall') {
+      const wall = { id: 'w' + Date.now(), x1: drag.start.x, y1: drag.start.y, x2: drag.current.x, y2: drag.current.y };
+      if (Math.hypot(wall.x2 - wall.x1, wall.y2 - wall.y1) > 0.5) {
+        snapshot();
+        floor.walls.push(wall);
+      }
+    }
+
+    if (drag.kind === 'move-room' || drag.kind === 'move-object' || drag.kind === 'move-opening') {
+      saveState(true);
+    }
+
+    drag = null;
+    render();
+  }
+
+  function bindEvents(){
+    document.querySelectorAll('.tool').forEach((btn) => btn.addEventListener('click', () => setTool(btn.dataset.tool)));
+    document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click', () => {
+      activeCategory = tab.dataset.category;
+      document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('active', x === tab));
+      renderCatalog();
+    }));
+    $('#undoBtn').addEventListener('click', undo);
+    $('#redoBtn').addEventListener('click', redo);
+    $('#zoomInBtn').addEventListener('click', () => { zoom = Math.min(1.8, zoom + 0.1); render(); saveState(true); });
+    $('#zoomOutBtn').addEventListener('click', () => { zoom = Math.max(0.65, zoom - 0.1); render(); saveState(true); });
+    $('#zoomLabelBtn').addEventListener('click', () => { zoom = 1; render(); saveState(true); });
+    $('#newProjectBtn').addEventListener('click', () => {
+      const next = makeDefaultProject();
+      next.name = 'Novo projeto';
+      state = next;
+      state.id = `project-${Date.now()}`;
+      saveState(true);
+      persistToProjectArchive();
+      updateProjectNameButton();
+      render();
+    });
+    $('#projectNameBtn').addEventListener('click', () => {
+      const value = prompt('Nome do projeto:', state.name || 'Casa dos sonhos');
+      if (value && value.trim()) {
+        state.name = value.trim();
+        updateProjectNameButton();
+        saveState(true);
+      }
+    });
+    $('#saveProjectBtn').addEventListener('click', () => { saveProjectToServer(); persistToProjectArchive(); });
+    $('#exportJsonBtn').addEventListener('click', exportJson);
+    $('#pdfBtn').addEventListener('click', printPdf);
+    $('#addFloorBtn').addEventListener('click', addNewFloor);
+    $('#loginBtn').addEventListener('click', handleLogin);
+    $('#demoLoginBtn').addEventListener('click', loginDemo);
+    document.querySelectorAll('.view-btn').forEach((btn) => btn.addEventListener('click', () => {
+      view = btn.dataset.view;
+      document.querySelectorAll('.view-btn').forEach((x) => x.classList.toggle('active', x === btn));
+      render();
+    }));
+    canvasEl.addEventListener('pointerdown', startDragOnCanvas);
+    canvasEl.addEventListener('pointermove', moveDrag);
+    canvasEl.addEventListener('pointerup', endDrag);
+    canvasEl.addEventListener('pointerleave', endDrag);
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
+      if (e.key === 'Escape') { state.selected = []; render(); }
+      if (e.key === 'Delete' || e.key === 'Backspace') { deleteSelection(); }
+      if (e.key.toLowerCase() === 'v') setTool('select');
+      if (e.key.toLowerCase() === 'r') setTool('room');
+      if (e.key.toLowerCase() === 'm') setTool('wall');
+    });
+    window.addEventListener('resize', resizeCanvas);
+  }
+
+  function boot(){
+    updateProjectNameButton();
+    renderCatalog();
+    renderSavedProjects();
+    bindEvents();
+    if (localStorage.getItem('casaforma-user')) {
+      $('#loginBox').classList.add('hidden');
+    }
+    resizeCanvas();
+    render();
+    updateHistoryButtons();
+  }
+
+  boot();
 })();
 </script>
 </body>

@@ -1,18 +1,25 @@
 # sistema_chamados
 
-## Planejador de plantas — CasaForma
+## CasaForma Pro — planejador de plantas
 
-O projeto inclui um planejador visual de plantas residenciais em `public/plantas/`, compatível com a hospedagem atual na Vercel. Depois do deploy, acesse **`/plantas/`** no domínio do projeto.
+Este repositório contém um protótipo completo de planejador de plantas residenciais, com:
+- editor 2D e 3D
+- criação de cômodos, muros, portas, janelas, portões
+- catálogo de itens domésticos e externos
+- fusão de cômodos
+- múltiplos andares
+- login simples para uso local e servidor
+- exportação em JSON e PDF
+- salvamento automático local e compatível com backend
 
-### Recursos
-- Desenho de cômodos retangulares e muros em qualquer direção, com medidas em metros.
-- Portas de abrir e de correr, janelas e portões.
-- Catálogo de móveis e decoração: geladeira, fogão, pia, mesa, sofá, cama, banheiro, carro, churrasqueira, jardim e mais.
-- Visualizações 2D e 3D isométrica, seleção, movimentação, rotação e redimensionamento.
-- Fusão de dois cômodos vizinhos alinhados, removendo a parede compartilhada.
-- Salvamento automático no navegador, desfazer/refazer e exportação para JSON e PNG.
+### Acesso
+A aplicação é servida em:
+- `/plantas/`
 
-### Publicar na Vercel
-O repositório já contém configuração para Vercel. Faça push das alterações para a branch conectada ao projeto; a Vercel fará um novo deploy automaticamente. A aplicação também pode ser importada em **vercel.com/new** e conectada a este repositório. Como o planejador é estático e salva os dados no navegador, não precisa de configuração de banco de dados.
+### Deploy na Vercel
+O app já está pensado para funcionar em hospedagem estática com o backend Express do repo. Faça o push para a branch conectada ao seu projeto Vercel e o deploy será executado automaticamente.
 
-> Os projetos são armazenados localmente no navegador e não são sincronizados entre dispositivos. Use Exportar para manter uma cópia do arquivo JSON.
+### Observações
+- Se o `DATABASE_URL` estiver configurado, o login e o salvamento podemPersistir no servidor.
+- Se o banco não estiver configurado, o projeto continua funcionando com salvamento local no navegador.
+- Para exportar em PDF, use o botão "PDF" na interface ou imprima a tela no navegador.
